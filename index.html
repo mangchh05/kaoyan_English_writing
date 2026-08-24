@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>考研英语写作训练与批改系统</title>
+  <meta name="description" content="考研英语（英语一/英语二）真题库、范文背诵、好词好句、作文框架、模拟出题与AI批改一站式平台" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div class="brand">
+        <h1>📚 考研英语写作</h1>
+        <p>训练 · 批改 · 背诵 · 框架</p>
+      </div>
+      <nav id="nav"></nav>
+      <div class="side-foot">
+        数据本地保存 · 支持 GitHub Pages 部署<br />
+        <span id="nav-data-count"></span>
+      </div>
+    </aside>
+    <div id="main">
+      <header id="topbar">
+        <button class="menu-btn" id="menu-btn" aria-label="菜单">☰</button>
+        <span class="topbar-title" id="topbar-title">主页</span>
+      </header>
+      <main id="content"></main>
+    </div>
+  </div>
+  <div id="sidebar-veil"></div>
+  <div id="toast"></div>
+
+  <!-- 数据（顺序固定） -->
+  <script src="js/data-meta.js"></script>
+  <script src="js/data-essays-en1.js"></script>
+  <script src="js/data-essays-en2.js"></script>
+  <script src="js/data-essays-xiao.js"></script>
+  <!-- 库 -->
+  <script src="libs/mammoth.browser.min.js"></script>
+  <!-- 应用 -->
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/quiz.js"></script>
+  <script src="js/correction.js"></script>
+  <script src="js/library.js"></script>
+  <script src="js/memorize.js"></script>
+  <script src="js/framework.js"></script>
+  <script src="js/guide.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
