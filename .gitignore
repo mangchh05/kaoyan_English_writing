@@ -1,6 +1,36 @@
+# ===== 依赖 =====
 node_modules/
+
+# ===== 系统文件 =====
 .DS_Store
 Thumbs.db
-*.log
+Desktop.ini
+ehthumbs.db
+
+# ===== 编辑器 / IDE =====
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
+
+# ===== 日志与临时文件 =====
+*.log
+*.tmp
+*.bak
+*.orig
+*.cache
+
+# ===== 隐私 / 敏感（密钥、环境变量、本地配置，绝不入库）=====
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+secrets.*
+*.secret
+*.local
+config.local.*
+token*.txt
+credential*.txt
