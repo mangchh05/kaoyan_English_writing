@@ -15,6 +15,13 @@
         el('span', { class: 'badge gray', text: e.part }),
         (e.topicTags || []).map(function (t) { return el('span', { class: 'tag', text: t }); })]));
 
+    // 真题配图（图表 / 图画 / 原图文件）
+    if (e.image) {
+      var imgBox = el('div', { style: 'margin:12px 0;' });
+      imgBox.innerHTML = App.charts.renderImage(e.image);
+      body.appendChild(imgBox);
+    }
+
     body.appendChild(el('h4', { text: '题目' }));
     body.appendChild(el('div', { class: 'essay-text', style: 'font-family:inherit;font-size:14px;', text: e.prompt }));
 
@@ -47,7 +54,9 @@
   }
 
   function goCorrect(e) {
-    sessionStorage.setItem('kyeng.prefillTopic', JSON.stringify({ topic: e.title + '（' + e.year + ' ' + e.exam + '）', type: e.type, text: e.prompt }));
+    var pre = { topic: e.title + '（' + e.year + ' ' + e.exam + '）', type: e.type, text: e.prompt };
+    if (e.image) pre.image = e.image;
+    sessionStorage.setItem('kyeng.prefillTopic', JSON.stringify(pre));
     location.hash = 'correct';
   }
 

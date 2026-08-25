@@ -92,6 +92,19 @@
     grid.appendChild(colSide);
     root.appendChild(grid);
 
+    // 从主页/真题库带入的完整题目（含配图）
+    if (prefill.text) {
+      var topicCard = el('div', { class: 'card' });
+      var th = el('div', { class: 'flex-between mb' });
+      th.appendChild(el('h3', { text: '题目' }));
+      if (prefill.type) th.appendChild(el('span', { class: 'badge', text: prefill.type }));
+      topicCard.appendChild(th);
+      if (prefill.image) topicCard.appendChild(el('div', { class: 'mt', html: App.charts.renderImage(prefill.image) }));
+      topicCard.appendChild(el('div', { class: 'essay-text', style: 'font-family:inherit;font-size:14.5px;margin-top:12px;', text: prefill.text }));
+      topicCard.appendChild(el('div', { class: 'hint mt', text: '请按题目要求完成作文后，粘贴或上传到下方输入区。' }));
+      colMain.appendChild(topicCard);
+    }
+
     /* ================= 右侧栏：模型设置状态 + 使用提示 ================= */
     var s0 = Store.getSettings();
     var p0 = getProvider(s0.provider);

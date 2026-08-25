@@ -64,7 +64,17 @@
 
   function getEssays() {
     var ov = getOverrides();
-    return applyOverrides(baseEssays(), ov.essays);
+    var list = applyOverrides(baseEssays(), ov.essays);
+    // 合并配图（图表/图画场景），覆盖层中的 image 优先
+    var charts = window.APP_DATA_IMAGES_CHARTS || {};
+    var scenes = window.APP_DATA_IMAGES_SCENES || {};
+    list.forEach(function (e) {
+      if (!e.image) {
+        var img = charts[e.id] || scenes[e.id] || null;
+        if (img) e.image = img;
+      }
+    });
+    return list;
   }
   function getPhrases() {
     var ov = getOverrides();

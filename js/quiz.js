@@ -31,6 +31,7 @@
     return {
       type: '图画作文',
       topic: theme,
+      scene: App.charts.mockScene(theme),
       text: '请根据下面这幅图画写一篇英语短文（约 160–200 词）：\n\n图画围绕主题「' + theme + '」展开。\n\n写作要求：\n1) describe the picture（描述图画）\n2) interpret its meaning（阐释寓意）\n3) give your comments（发表评论）'
     };
   }
@@ -40,6 +41,7 @@
     return {
       type: '图表作文',
       topic: s.subject,
+      chart: App.charts.mockChart(s.subject, s.trend),
       text: '请根据下面的' + ct + '写一篇英语短文（约 150 词）：\n\n图表内容：' + s.subject + '，变化趋势为「' + s.trend + '」。\n\n写作要求：\n1) interpret the chart（解读图表）\n2) give your comments（发表评论）'
     };
   }
@@ -84,23 +86,28 @@
     var essays = Store.getEssays();
     if (!essays.length) return null;
     var e = pick(essays);
-    return {
+    var q = {
       type: e.type,
       topic: e.title + '（' + e.year + ' ' + e.exam + '）',
       text: '【真题重现】' + e.year + ' ' + e.exam + ' ' + e.part + '：' + e.title + '\n\n' + e.prompt,
       essayId: e.id
     };
+    if (e.image) q.image = e.image;
+    return q;
   }
 
   function renderQuizResult(container, quiz) {
     container.innerHTML = '';
-    var card = el('div', { class: 'card', style: 'background:#fff;border-left:4px solid #2f54eb;' });
+    var card = el('div', { class: 'card', style: 'background:#fff;border-left:4px solid #a63c2e;' });
     var head = el('div', { class: 'flex-between mb' },
       [el('div', {}, [el('span', { class: 'badge', text: quiz.type }), ' ',
         el('span', { class: 'badge gray', text: quiz.topic || '' })]),
       el('button', { class: 'btn btn-outline btn-sm', onclick: function () { renderQuizResult(container, genQuiz(document.getElementById('quiz-type').value)); } }, '换一题')]);
     card.appendChild(head);
-    var pre = el('div', { class: 'essay-text', style: 'margin-top:0;white-space:pre-wrap;', text: quiz.text });
+    if (quiz.image) card.appendChild(el('div', { class: 'mt', html: App.charts.renderImage(quiz.image) }));
+    else if (quiz.chart) card.appendChild(el('div', { class: 'mt', html: App.charts.renderChart(quiz.chart) }));
+    else if (quiz.scene) card.appendChild(el('div', { class: 'mt', html: App.charts.renderScene(quiz.scene.id, quiz.scene.caption) }));
+    var pre = el('div', { class: 'essay-text', style: 'margin-top:12px;white-space:pre-wrap;', text: quiz.text });
     card.appendChild(pre);
     var actions = el('div', { class: 'flex mt' },
       [el('button', { class: 'btn btn-primary', onclick: function () { goCorrect(quiz); } }, '带着这题去批改'),
@@ -111,7 +118,11 @@
   }
 
   function goCorrect(quiz) {
-    sessionStorage.setItem('kyeng.prefillTopic', JSON.stringify({ topic: quiz.topic, type: quiz.type, text: quiz.text }));
+    var pre = { topic: quiz.topic, type: quiz.type, text: quiz.text };
+    if (quiz.image) pre.image = quiz.image;
+    else if (quiz.chart) pre.image = { chart: quiz.chart };
+    else if (quiz.scene) pre.image = { scene: quiz.scene };
+    sessionStorage.setItem('kyeng.prefillTopic', JSON.stringify(pre));
     location.hash = 'correct';
   }
 
