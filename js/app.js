@@ -33,10 +33,15 @@
     }
     if (children != null) {
       var arr = Array.isArray(children) ? children : [children];
-      arr.forEach(function (c) {
-        if (c == null) return;
-        node.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
-      });
+      // 递归展平嵌套数组，让 map() 等返回的数组也能直接作为子节点
+      (function flatten(list) {
+        for (var i = 0; i < list.length; i++) {
+          var c = list[i];
+          if (c == null) continue;
+          if (Array.isArray(c)) { flatten(c); continue; }
+          node.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+        }
+      })(arr);
     }
     return node;
   }

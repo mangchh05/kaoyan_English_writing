@@ -1,16 +1,17 @@
 /* ============================================================
    correction.js — AI 作文批改（.docx 解析 + 大模型 + 本地统计）
+   布局：左主区(题目/正文/统计/结果/历史) + 右侧栏(模型设置)
    ============================================================ */
 (function () {
   'use strict';
   var el = window.UI.el, toast = window.UI.toast, md = window.UI.renderMarkdown;
 
   var PROVIDERS = [
-    { id: 'deepseek', name: 'DeepSeek（推荐，支持浏览器直连）', baseUrl: 'https://api.deepseek.com/v1', models: ['deepseek-chat', 'deepseek-reasoner'] },
-    { id: 'siliconflow', name: 'SiliconFlow（支持浏览器直连）', baseUrl: 'https://api.siliconflow.cn/v1', models: ['deepseek-ai/DeepSeek-V3', 'Qwen/Qwen2.5-72B-Instruct', 'Qwen/Qwen2.5-7B-Instruct'] },
+    { id: 'deepseek', name: 'DeepSeek（推荐 · 浏览器直连稳定）', baseUrl: 'https://api.deepseek.com/v1', models: ['deepseek-chat', 'deepseek-reasoner'] },
+    { id: 'siliconflow', name: 'SiliconFlow（推荐 · 浏览器直连稳定）', baseUrl: 'https://api.siliconflow.cn/v1', models: ['deepseek-ai/DeepSeek-V3', 'Qwen/Qwen2.5-72B-Instruct', 'Qwen/Qwen2.5-7B-Instruct'] },
     { id: 'moonshot', name: 'Moonshot / Kimi', baseUrl: 'https://api.moonshot.cn/v1', models: ['moonshot-v1-8k', 'moonshot-v1-32k'] },
     { id: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini'] },
-    { id: 'qwen', name: '通义千问（DashScope 兼容模式）', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', models: ['qwen-plus', 'qwen-turbo', 'qwen-max'] },
+    { id: 'qwen', name: '通义千问（DashScope 兼容）', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', models: ['qwen-plus', 'qwen-turbo', 'qwen-max'] },
     { id: 'zhipu', name: '智谱 GLM', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', models: ['glm-4-flash', 'glm-4-plus'] },
     { id: 'custom', name: '自定义（OpenAI 兼容接口）', baseUrl: '', models: [] }
   ];
@@ -19,7 +20,7 @@
     '你是一位资深的考研英语（全国硕士研究生招生考试英语一/英语二）写作阅卷专家。请对学生作文进行专业、细致、有针对性的批改。',
     '请使用中文输出，并使用 Markdown 排版，严格按以下结构：',
     '## 评分',
-    '- 总分：X / 满分Y分（并说明所属档次，如"第五档/第四档"）',
+    '- 总分：X / 满分Y分（并说明所属档次，如“第五档/第四档”）',
     '## 总体评价',
     '（2–3 句话，客观概括优点与不足）',
     '## 内容与结构',
@@ -33,13 +34,14 @@
     '## 高分表达参考',
     '（针对该话题给出 2–3 句地道的加分表达）',
     '',
-    '要求：评价客观、具体、针对学生原文，避免空话套话；引用学生原文时必须准确。'
+    '要求：评价客观、具体、针对学生原文，避免空话套话；引用学生原文时必须准确。',
+    '若用户消息中提供了「评分标准」或「该题高分参考要点」，请严格参照其中的分档要求与要点进行评分与点评。'
   ].join('\n');
 
-  function scoreBasis(exam, part) {
-    if (part === '小作文') return 10;
-    if (exam === '英语二') return 15;
-    return 20;
+  function scoreBasis(exam, part) { if (part === '小作文') return 10; if (exam === '英语二') return 15; return 20; }
+
+  function field(label, input) {
+    return el('div', { class: 'form-group' }, [el('label', { text: label }), input]);
   }
 
   function localStats(text) {
@@ -51,10 +53,7 @@
     var clean = Object.keys(unique).filter(Boolean);
     var totalChars = words.join('').length;
     return {
-      words: words.length,
-      unique: clean.length,
-      sentences: sentences.length,
-      paragraphs: paragraphs.length,
+      words: words.length, unique: clean.length, sentences: sentences.length, paragraphs: paragraphs.length,
       avgSentence: sentences.length ? (words.length / sentences.length).toFixed(1) : '0',
       avgWord: words.length ? (totalChars / words.length).toFixed(1) : '0'
     };
@@ -65,61 +64,67 @@
     var box = document.getElementById('stat-box');
     if (!box) return;
     box.innerHTML = '';
-    box.appendChild(el('div', { class: 'grid grid-4', style: 'gap:10px;' },
+    box.appendChild(el('div', { class: 'stat-grid' },
       [
         ['词数', s.words], ['句子数', s.sentences], ['不同词', s.unique], ['段落数', s.paragraphs],
-        ['均句长', s.avgSentence + ' 词'], ['均词长', s.avgWord + ' 字母'], ['词汇丰富度', (s.unique / Math.max(s.words, 1) * 100).toFixed(0) + '%'], ['推荐词数', '见评分标准']
+        ['均句长', s.avgSentence + ' 词'], ['均词长', s.avgWord + ' 字母'], ['词汇丰富度', (s.unique / Math.max(s.words, 1) * 100).toFixed(0) + '%'], ['推荐词数', '见右下角评分标准']
       ].map(function (it) {
-        return el('div', { class: 'card tight', style: 'padding:10px;text-align:center;' },
-          [el('div', { class: 'small muted', text: it[0] }), el('div', { style: 'font-size:20px;font-weight:700;color:#2f54eb;', text: String(it[1]) })]);
+        return el('div', { class: 'stat-item' },
+          [el('div', { class: 'small muted', text: it[0] }), el('div', { class: 'stat-num', text: String(it[1]) })]);
       })));
   }
 
-  function getProvider(id) {
-    return PROVIDERS.filter(function (p) { return p.id === id; })[0] || PROVIDERS[0];
-  }
+  function getProvider(id) { return PROVIDERS.filter(function (p) { return p.id === id; })[0] || PROVIDERS[0]; }
 
   App.pages.correct = function (root) {
     var settings = Store.getSettings();
-
-    // 读取从"出题"页带来的题目
     var prefill = {};
     try { prefill = JSON.parse(sessionStorage.getItem('kyeng.prefillTopic') || '{}'); } catch (e) { prefill = {}; }
 
     root.appendChild(el('div', { class: 'page-head' },
-      [el('h2', { text: '✍️ AI 作文批改' }), el('div', { class: 'sub', text: '上传 Word（.docx）或粘贴作文，调用大模型给出评分与批改意见；数据只经你配置的 API 发送。' })]));
+      [el('h2', { text: '✍️ AI 作文批改' }), el('div', { class: 'sub', text: '上传 Word 或粘贴作文，结合本站评分标准与该题要点，调用大模型给出评分与批改意见。' })]));
 
-    // ---- 设置 ----
-    var setCard = el('div', { class: 'card' });
-    setCard.appendChild(el('h3', { text: '🔑 模型设置（保存在本地浏览器）' }));
-    var setRow = el('div', { class: 'form-row' });
+    // ---------- 两栏布局 ----------
+    var grid = el('div', { class: 'grid-correction' });
+    var colMain = el('div', { class: 'col-main' });
+    var colSide = el('div', { class: 'col-side' });
+    grid.appendChild(colMain);
+    grid.appendChild(colSide);
+    root.appendChild(grid);
+
+    /* ================= 右侧栏：模型设置 ================= */
+    var setCard = el('div', { class: 'card side-card' });
+    setCard.appendChild(el('h3', { text: '🔑 模型设置' }));
     var provSel = el('select', { class: 'select', id: 'prov-sel' },
       PROVIDERS.map(function (p) { return el('option', { value: p.id, text: p.name }); }));
     provSel.value = settings.provider;
-    var baseInput = el('input', { class: 'input', id: 'base-url', placeholder: 'API Base URL', value: settings.baseUrl });
-    var modelInput = el('input', { class: 'input', id: 'model', placeholder: '模型名称', value: settings.model, list: 'model-list' });
+    var keyInput = el('input', { class: 'input', id: 'api-key', type: 'password', placeholder: 'sk-…（仅存本机）', value: settings.apiKey });
+    var baseInput = el('input', { class: 'input', id: 'base-url', placeholder: 'https://…/v1', value: settings.baseUrl });
+    var modelInput = el('input', { class: 'input', id: 'model', placeholder: '模型名', value: settings.model, list: 'model-list' });
     var modelList = el('datalist', { id: 'model-list' }, getProvider(settings.provider).models.map(function (m) { return el('option', { value: m }); }));
-    var keyInput = el('input', { class: 'input', id: 'api-key', type: 'password', placeholder: 'API Key（仅存本地）', value: settings.apiKey });
-    var tempInput = el('input', { class: 'input', id: 'temp', type: 'number', step: '0.1', min: '0', max: '2', value: settings.temperature, style: 'max-width:100px;' });
-    setRow.appendChild(provSel);
-    setRow.appendChild(keyInput);
-    setRow.appendChild(baseInput);
-    setRow.appendChild(modelInput);
-    setRow.appendChild(modelList);
-    setRow.appendChild(el('div', { class: 'form-group', style: 'flex:0 0 90px;min-width:90px;' },
-      [el('label', { text: '温度' }), tempInput]));
-    setCard.appendChild(setRow);
-    setCard.appendChild(el('div', { class: 'hint', text: '提示：推荐 DeepSeek / SiliconFlow（浏览器直连稳定）。API Key 仅保存在你本地浏览器 localStorage，不会上传到本站任何服务器。' }));
-    var saveBtn = el('button', { class: 'btn btn-outline btn-sm mt', onclick: function () { saveSettings(); } }, '保存设置');
-    setCard.appendChild(saveBtn);
-    root.appendChild(setCard);
+    var tempInput = el('input', { class: 'input', id: 'temp', type: 'number', step: '0.1', min: '0', max: '2', value: settings.temperature });
+    setCard.appendChild(field('服务商', provSel));
+    setCard.appendChild(field('API Key', keyInput));
+    setCard.appendChild(field('Base URL', baseInput));
+    setCard.appendChild(field('模型', modelInput));
+    setCard.appendChild(modelList);
+    setCard.appendChild(field('温度', tempInput));
+    setCard.appendChild(el('div', { class: 'hint', style: 'padding:8px 12px;', text: '温度（Temperature，0–2）控制回答的随机度：越低越稳定、越标准，越高越有创意。作文批改建议 0.3 左右。' }));
+    setCard.appendChild(el('button', { class: 'btn btn-primary btn-block mt', onclick: function () { saveSettings(); } }, '保存设置'));
+    setCard.appendChild(el('div', { class: 'hint mt', text: '推荐 DeepSeek / SiliconFlow（浏览器直连稳定）。API Key 只存在你本机浏览器，不会上传任何服务器。' }));
+    colSide.appendChild(setCard);
+
+    var tipCard = el('div', { class: 'card side-card' });
+    tipCard.appendChild(el('h4', { style: 'margin-bottom:8px;', text: '💡 使用提示' }));
+    tipCard.appendChild(el('ul', { style: 'padding-left:18px;' },
+      ['先在上方保存模型设置并填入 API Key', '左侧上传 .docx 或粘贴作文', '若填了“作文题目/话题”，批改会结合该题要点更精准', '每次批改结果会保存到左下角“批改历史”'].map(function (t) {
+        return el('li', { text: t, style: 'margin-bottom:5px;' });
+      })));
+    colSide.appendChild(tipCard);
 
     function saveSettings() {
-      Store.setSettings({
-        provider: provSel.value, baseUrl: baseInput.value.trim(), model: modelInput.value.trim(),
-        apiKey: keyInput.value.trim(), temperature: parseFloat(tempInput.value) || 0.3
-      });
-      toast('设置已保存');
+      Store.setSettings({ provider: provSel.value, baseUrl: baseInput.value.trim(), model: modelInput.value.trim(), apiKey: keyInput.value.trim(), temperature: parseFloat(tempInput.value) || 0.3 });
+      toast('模型设置已保存');
     }
     provSel.addEventListener('change', function () {
       var p = getProvider(provSel.value);
@@ -129,21 +134,20 @@
       p.models.forEach(function (m) { modelList.appendChild(el('option', { value: m })); });
     });
 
-    // ---- 题目与输入 ----
+    /* ================= 左侧主区 ================= */
+    // 题目与正文
     var inputCard = el('div', { class: 'card' });
     inputCard.appendChild(el('h3', { text: '📄 作文题目与正文' }));
-
     var topicRow = el('div', { class: 'form-row' });
     var examSel = el('select', { class: 'select', id: 'exam-sel' }, [el('option', { value: '英语一', text: '英语一' }), el('option', { value: '英语二', text: '英语二' })]);
     var partSel = el('select', { class: 'select', id: 'part-sel' }, [el('option', { value: '大作文', text: '大作文' }), el('option', { value: '小作文', text: '小作文' })]);
     if (prefill.type === '书信' || prefill.type === '通知') partSel.value = '小作文';
     var topicInput = el('input', { class: 'input', id: 'topic-input', placeholder: '作文题目 / 话题（可选，填了批改更精准）', value: prefill.topic || '' });
-    topicRow.appendChild(examSel);
-    topicRow.appendChild(partSel);
-    topicRow.appendChild(topicInput);
+    topicRow.appendChild(field('考试类型', examSel));
+    topicRow.appendChild(field('大 / 小作文', partSel));
+    topicRow.appendChild(field('题目 / 话题', topicInput));
     inputCard.appendChild(topicRow);
 
-    // 选项卡：上传 / 粘贴
     var tabs = el('div', { class: 'tabs' });
     var tabUpload = el('div', { class: 'tab active', text: '📎 上传 Word (.docx)', onclick: function () { switchInput('upload'); } });
     var tabPaste = el('div', { class: 'tab', text: '📝 直接粘贴文本', onclick: function () { switchInput('paste'); } });
@@ -158,67 +162,34 @@
     uploadBox.appendChild(el('div', { class: 'hint', id: 'file-status', text: '选择文件后自动抽取正文，可继续编辑。' }));
 
     var pasteBox = el('div', { id: 'paste-box', style: 'display:none;' });
-    var textarea = el('textarea', { class: 'textarea mono', id: 'essay-text', placeholder: '把作文粘贴到这里…', style: 'min-height:220px;' });
+    var textarea = el('textarea', { class: 'textarea mono', id: 'essay-text', placeholder: '把作文粘贴到这里…', style: 'min-height:240px;' });
     pasteBox.appendChild(textarea);
+    pasteBox.appendChild(el('div', { class: 'hint', text: '可先将作文粘贴到这里；或切回“上传 Word”直接上传文件。' }));
 
     inputCard.appendChild(uploadBox);
     inputCard.appendChild(pasteBox);
+    colMain.appendChild(inputCard);
 
-    var prefillText = prefill.text || '';
-    function switchInput(mode) {
-      if (mode === 'upload') { tabUpload.classList.add('active'); tabPaste.classList.remove('active'); uploadBox.style.display = ''; pasteBox.style.display = 'none'; }
-      else { tabPaste.classList.add('active'); tabUpload.classList.remove('active'); pasteBox.style.display = ''; uploadBox.style.display = 'none'; }
-    }
-
-    fileInput.addEventListener('change', function () {
-      var f = fileInput.files[0];
-      if (!f) return;
-      var status = document.getElementById('file-status');
-      status.textContent = '正在解析 ' + f.name + ' …';
-      if (/\.txt$/i.test(f.name)) {
-        f.text().then(function (t) { textarea.value = t; status.textContent = '已提取 ' + t.split(/\s+/).length + ' 词，可继续编辑。'; renderStats(t); });
-        return;
-      }
-      if (typeof mammoth === 'undefined') {
-        status.textContent = '解析组件未加载（libs/mammoth.browser.min.js 缺失），请改用粘贴文本。';
-        toast('mammoth 未加载');
-        return;
-      }
-      f.arrayBuffer().then(function (buf) {
-        return mammoth.extractRawText({ arrayBuffer: buf });
-      }).then(function (res) {
-        var t = (res.value || '').trim();
-        textarea.value = t;
-        status.textContent = '已提取 ' + (t ? t.split(/\s+/).length : 0) + ' 词，可继续编辑。';
-        renderStats(t);
-      }).catch(function (err) {
-        status.textContent = '解析失败：' + (err && err.message ? err.message : err) + '，请改用粘贴文本。';
-      });
-    });
-    textarea.addEventListener('input', function () { renderStats(textarea.value); });
-
-    root.appendChild(inputCard);
-
-    // ---- 提交 ----
+    // 提交
     var actionCard = el('div', { class: 'card' });
-    var statBox = el('div', { id: 'stat-box' });
     actionCard.appendChild(el('h3', { text: '📊 基本统计（本地即时计算）' }));
+    var statBox = el('div', { id: 'stat-box' });
     actionCard.appendChild(statBox);
     var submitBtn = el('button', { class: 'btn btn-primary btn-block mt', id: 'submit-btn', onclick: submit }, '开始 AI 批改');
     actionCard.appendChild(submitBtn);
-    actionCard.appendChild(el('div', { class: 'hint', text: '提交后将把「题目 + 你的作文」发送到上面配置的模型接口；请先保存模型设置并填写 API Key。' }));
-    root.appendChild(actionCard);
+    actionCard.appendChild(el('div', { class: 'hint', text: '提交时将发送「题目 + 作文」到右侧配置的模型接口；请先保存设置并填写 API Key。' }));
+    colMain.appendChild(actionCard);
 
     var resultBox = el('div', { id: 'result-box' });
-    root.appendChild(resultBox);
+    colMain.appendChild(resultBox);
 
-    // ---- 历史 ----
+    // 历史
     var histCard = el('div', { class: 'card' });
     histCard.appendChild(el('div', { class: 'flex-between' },
       [el('h3', { text: '🕘 批改历史（本地）' }), el('button', { class: 'btn btn-ghost btn-sm', onclick: function () { Store.clearHistory(); renderHistory(); toast('已清空'); } }, '清空')]));
     var histBox = el('div', { id: 'hist-box' });
     histCard.appendChild(histBox);
-    root.appendChild(histCard);
+    colMain.appendChild(histCard);
 
     function renderHistory() {
       var h = Store.getHistory();
@@ -245,57 +216,83 @@
       window.scrollTo({ top: resultBox.offsetTop - 80, behavior: 'smooth' });
     }
 
+    function switchInput(mode) {
+      if (mode === 'upload') { tabUpload.classList.add('active'); tabPaste.classList.remove('active'); uploadBox.style.display = ''; pasteBox.style.display = 'none'; }
+      else { tabPaste.classList.add('active'); tabUpload.classList.remove('active'); pasteBox.style.display = ''; uploadBox.style.display = 'none'; }
+    }
+
+    fileInput.addEventListener('change', function () {
+      var f = fileInput.files[0];
+      if (!f) return;
+      var status = document.getElementById('file-status');
+      status.textContent = '正在解析 ' + f.name + ' …';
+      if (/\.txt$/i.test(f.name)) {
+        f.text().then(function (t) { textarea.value = t; status.textContent = '已提取 ' + t.split(/\s+/).length + ' 词，可继续编辑。'; renderStats(t); });
+        return;
+      }
+      if (typeof mammoth === 'undefined') { status.textContent = '解析组件未加载（libs/mammoth.browser.min.js 缺失），请改用粘贴文本。'; toast('mammoth 未加载'); return; }
+      f.arrayBuffer().then(function (buf) { return mammoth.extractRawText({ arrayBuffer: buf }); })
+        .then(function (res) {
+          var t = (res.value || '').trim();
+          textarea.value = t;
+          status.textContent = '已提取 ' + (t ? t.split(/\s+/).length : 0) + ' 词，可继续编辑。';
+          renderStats(t);
+        })
+        .catch(function (err) { status.textContent = '解析失败：' + (err && err.message ? err.message : err) + '，请改用粘贴文本。'; });
+    });
+    textarea.addEventListener('input', function () { renderStats(textarea.value); });
+
     function submit() {
       var text = textarea.value.trim();
-      var settings2 = Store.getSettings();
+      var s2 = Store.getSettings();
       if (!text) { toast('请先上传或粘贴作文内容'); switchInput('paste'); return; }
-      if (!settings2.apiKey) { toast('请先填写 API Key 并保存设置'); return; }
-      if (!settings2.baseUrl || !settings2.model) { toast('请填写 API Base URL 与模型名称'); return; }
+      if (!s2.apiKey) { toast('请先在右侧填写 API Key 并保存设置'); return; }
+      if (!s2.baseUrl || !s2.model) { toast('请填写 API Base URL 与模型名称'); return; }
 
       var exam = examSel.value, part = partSel.value;
       var basis = scoreBasis(exam, part);
       var topic = topicInput.value.trim() || '（未指定，请结合作文内容判断话题）';
 
+      // 评分标准 + 该题参考要点
+      var scoringText = Store.getScoring().filter(function (s) { return s.exam === exam && s.part === part; })
+        .map(function (s) { return s.band + '（' + s.range + '分）：' + s.criteria; }).join('\n');
+      var essay = Store.getEssays().filter(function (e) { return topic && (topic.indexOf(e.title) >= 0 || e.title.indexOf(topic) >= 0); })[0];
+      var refText = '';
+      if (essay) {
+        var kp = essay.keyPoints || {};
+        refText = '题目：' + essay.title + '（' + essay.year + ' ' + essay.exam + ' ' + essay.type + '）\n'
+          + '参考结构：' + (kp.structure || []).join('；') + '\n'
+          + '核心词汇：' + (kp.keywords || []).join(', ') + '\n'
+          + '高分好句：' + (kp.goodSentences || []).join(' | ');
+      }
+
       var userMsg = [
         '【考试类型】' + exam + ' · ' + part + '（满分 ' + basis + ' 分）',
         '【作文题目/话题】' + topic,
+        scoringText ? '【评分标准（分档要求）】\n' + scoringText : '',
+        refText ? '【该题高分参考要点（来自本站真题库，供评分与点评参考）】\n' + refText : '',
         '【学生作文】',
         text
-      ].join('\n\n');
+      ].filter(Boolean).join('\n\n');
 
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<span class="spin"></span> 正在批改，请稍候…';
       resultBox.innerHTML = '';
       resultBox.appendChild(el('div', { class: 'card' }, el('div', { class: 'empty', text: '模型正在批改，通常需要几秒到几十秒…' })));
 
-      var url = settings2.baseUrl.replace(/\/+$/, '') + '/chat/completions';
+      var url = s2.baseUrl.replace(/\/+$/, '') + '/chat/completions';
       fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + settings2.apiKey },
-        body: JSON.stringify({
-          model: settings2.model,
-          temperature: settings2.temperature,
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: userMsg }
-          ]
-        })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s2.apiKey },
+        body: JSON.stringify({ model: s2.model, temperature: s2.temperature, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: userMsg }] })
       }).then(function (resp) {
-        if (!resp.ok) {
-          return resp.text().then(function (t) { throw new Error('HTTP ' + resp.status + '：' + t.slice(0, 300)); });
-        }
+        if (!resp.ok) return resp.text().then(function (t) { throw new Error('HTTP ' + resp.status + '：' + t.slice(0, 300)); });
         return resp.json();
       }).then(function (data) {
-        var content = data && data.choices && data.choices[0] && data.choices[0].message
-          ? data.choices[0].message.content : '';
+        var content = data && data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
         if (!content) throw new Error('接口未返回内容');
         var stats = localStats(text);
-        var rec = {
-          id: 'h' + Date.now(),
-          time: new Date().toLocaleString('zh-CN'),
-          exam: exam, part: part, topic: topic, words: stats.words,
-          essay: text, result: content
-        };
+        var rec = { id: 'h' + Date.now(), time: new Date().toLocaleString('zh-CN'), exam: exam, part: part, topic: topic, words: stats.words, essay: text, result: content };
         Store.addHistory(rec);
         renderResult(content, rec.time, topic);
         renderHistory();
@@ -314,7 +311,7 @@
 
     function renderResult(content, time, topic) {
       resultBox.innerHTML = '';
-      resultBox.appendChild(el('div', { class: 'card' },
+      resultBox.appendChild(el('div', { class: 'card result-card' },
         [el('div', { class: 'flex-between' },
           [el('h3', { text: '批改结果 · ' + (topic || '未命名题目') }), el('span', { class: 'badge gray', text: time || '' })]),
           el('div', { class: 'md', html: md(content) })]));
@@ -323,11 +320,6 @@
 
     // 初始渲染
     renderHistory();
-    if (prefillText) {
-      var starter = prefill.type + '：' + (prefill.topic || '') + '\n\n' + prefillText + '\n\n（请在下方粘贴你的作文）';
-      // 仅把题目放进题目框，正文留空让用户填
-      topicInput.value = prefill.topic || '';
-      toast('已带入题目，请粘贴/上传你的作文');
-    }
+    if (prefill.type) { topicInput.value = prefill.topic || ''; toast('已带入题目，请粘贴/上传你的作文'); }
   };
 })();
