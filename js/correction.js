@@ -99,7 +99,7 @@
       th.appendChild(el('h3', { text: '题目' }));
       if (prefill.type) th.appendChild(el('span', { class: 'badge', text: prefill.type }));
       topicCard.appendChild(th);
-      if (prefill.image) topicCard.appendChild(el('div', { class: 'mt', html: App.charts.renderImage(prefill.image) }));
+      if (prefill.image) topicCard.appendChild(el('div', { class: 'mt', html: App.charts.renderFor(prefill.id, prefill.image) }));
       topicCard.appendChild(el('div', { class: 'essay-text', style: 'font-family:inherit;font-size:14.5px;margin-top:12px;', text: prefill.text }));
       topicCard.appendChild(el('div', { class: 'hint mt', text: '请按题目要求完成作文后，粘贴或上传到下方输入区。' }));
       colMain.appendChild(topicCard);

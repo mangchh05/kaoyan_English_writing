@@ -15,10 +15,10 @@
         el('span', { class: 'badge gray', text: e.part }),
         (e.topicTags || []).map(function (t) { return el('span', { class: 'tag', text: t }); })]));
 
-    // 真题配图（图表 / 图画 / 原图文件）
+    // 真题配图（图表 / 图画(AI生成) / 原图文件）
     if (e.image) {
       var imgBox = el('div', { style: 'margin:12px 0;' });
-      imgBox.innerHTML = App.charts.renderImage(e.image);
+      imgBox.innerHTML = App.charts.renderFor(e.id, e.image);
       body.appendChild(imgBox);
     }
 
@@ -54,7 +54,7 @@
   }
 
   function goCorrect(e) {
-    var pre = { topic: e.title + '（' + e.year + ' ' + e.exam + '）', type: e.type, text: e.prompt };
+    var pre = { id: e.id, topic: e.title + '（' + e.year + ' ' + e.exam + '）', type: e.type, text: e.prompt };
     if (e.image) pre.image = e.image;
     sessionStorage.setItem('kyeng.prefillTopic', JSON.stringify(pre));
     location.hash = 'correct';

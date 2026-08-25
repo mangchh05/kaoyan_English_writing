@@ -31,7 +31,8 @@
     return {
       type: '图画作文',
       topic: theme,
-      scene: App.charts.mockScene(theme),
+      scene: { caption: theme },
+      picId: 'mock:' + theme,
       text: '请根据下面这幅图画写一篇英语短文（约 160–200 词）：\n\n图画围绕主题「' + theme + '」展开。\n\n写作要求：\n1) describe the picture（描述图画）\n2) interpret its meaning（阐释寓意）\n3) give your comments（发表评论）'
     };
   }
@@ -93,6 +94,7 @@
       essayId: e.id
     };
     if (e.image) q.image = e.image;
+    q.picId = e.id;
     return q;
   }
 
@@ -104,9 +106,9 @@
         el('span', { class: 'badge gray', text: quiz.topic || '' })]),
       el('button', { class: 'btn btn-outline btn-sm', onclick: function () { renderQuizResult(container, genQuiz(document.getElementById('quiz-type').value)); } }, '换一题')]);
     card.appendChild(head);
-    if (quiz.image) card.appendChild(el('div', { class: 'mt', html: App.charts.renderImage(quiz.image) }));
+    if (quiz.image) card.appendChild(el('div', { class: 'mt', html: App.charts.renderFor(quiz.picId, quiz.image) }));
     else if (quiz.chart) card.appendChild(el('div', { class: 'mt', html: App.charts.renderChart(quiz.chart) }));
-    else if (quiz.scene) card.appendChild(el('div', { class: 'mt', html: App.charts.renderScene(quiz.scene.id, quiz.scene.caption) }));
+    else if (quiz.scene) card.appendChild(el('div', { class: 'mt', html: App.charts.renderFor(quiz.picId, { scene: quiz.scene }) }));
     var pre = el('div', { class: 'essay-text', style: 'margin-top:12px;white-space:pre-wrap;', text: quiz.text });
     card.appendChild(pre);
     var actions = el('div', { class: 'flex mt' },
@@ -118,7 +120,7 @@
   }
 
   function goCorrect(quiz) {
-    var pre = { topic: quiz.topic, type: quiz.type, text: quiz.text };
+    var pre = { id: quiz.picId, topic: quiz.topic, type: quiz.type, text: quiz.text };
     if (quiz.image) pre.image = quiz.image;
     else if (quiz.chart) pre.image = { chart: quiz.chart };
     else if (quiz.scene) pre.image = { scene: quiz.scene };

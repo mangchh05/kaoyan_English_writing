@@ -41,7 +41,11 @@
       window.APP_DATA_XIAO || []
     );
   }
-  function basePhrases() { return (window.APP_DATA_META && window.APP_DATA_META.phrases) || []; }
+  function basePhrases() {
+    var base = (window.APP_DATA_META && window.APP_DATA_META.phrases) || [];
+    var extra = window.APP_DATA_PHRASES_EXTRA || [];
+    return base.concat(extra);
+  }
 
   function applyOverrides(list, overridesMap) {
     if (!overridesMap) return list;
@@ -111,17 +115,28 @@
   }
   function resetOverrides() { saveOverrides({ essays: {}, phrases: {} }); }
 
-  /* ---------- 设置（AI 等） ---------- */
+  /* ---------- 设置（AI 批改 + AI 绘图） ---------- */
   function getSettings() {
     return load(KEYS.settings, {
       provider: 'deepseek',
       baseUrl: 'https://api.deepseek.com/v1',
       model: 'deepseek-chat',
       apiKey: '',
-      temperature: 0.3
+      temperature: 0.3,
+      imgProvider: 'siliconflow',
+      imgBaseUrl: 'https://api.siliconflow.cn/v1',
+      imgModel: 'black-forest-labs/FLUX.1-schnell',
+      imgKey: ''
     });
   }
-  function setSettings(s) { save(KEYS.settings, s); }
+  // 合并保存，避免覆盖其它设置字段
+  function setSettings(s) {
+    var cur = getSettings();
+    var merged = {};
+    Object.keys(cur).forEach(function (k) { merged[k] = cur[k]; });
+    Object.keys(s || {}).forEach(function (k) { merged[k] = s[k]; });
+    save(KEYS.settings, merged);
+  }
 
   /* ---------- 学习进度 ---------- */
   function getProgress() {
