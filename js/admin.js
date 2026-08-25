@@ -23,12 +23,45 @@
 
   App.pages.admin = function (root) {
     root.appendChild(el('div', { class: 'page-head' },
-      [el('h2', { text: '⚙️ 数据管理（输入口）' }), el('div', { class: 'sub', text: '在这里录入、更新真题范文与好词好句；改动即时生效并保存在本地，可导出为 git 可提交的数据文件。' })]));
+      [el('h2', { text: '数据管理（输入口）' }), el('div', { class: 'sub', text: '在这里配置模型、录入真题范文与好词好句；改动即时生效并保存在本地，可导出为 git 可提交的数据文件。' })]));
+
+    /* ================= 模型设置（AI 批改共用） ================= */
+    var PROVIDERS = window.AI_PROVIDERS || [];
+    var s = Store.getSettings();
+    var setCard = el('div', { class: 'card' });
+    setCard.appendChild(el('div', { class: 'flex-between' },
+      [el('h3', { text: '模型设置（AI 批改使用）' }), el('span', { class: 'badge gray', text: '仅保存在本机浏览器' })]));
+    var provSel = el('select', { class: 'select' }, PROVIDERS.map(function (p) { return el('option', { value: p.id, text: p.name }); }));
+    provSel.value = s.provider;
+    var keyInput = el('input', { class: 'input', type: 'password', placeholder: 'sk-…', value: s.apiKey });
+    var baseInput = el('input', { class: 'input', value: s.baseUrl });
+    var modelInput = el('input', { class: 'input', value: s.model, list: 'adm-model-list' });
+    var modelList = el('datalist', { id: 'adm-model-list' });
+    var tempInput = el('input', { class: 'input', type: 'number', step: '0.1', min: '0', max: '2', value: s.temperature });
+    function fillModels() {
+      var p = PROVIDERS.filter(function (x) { return x.id === provSel.value; })[0] || PROVIDERS[0] || { models: [] };
+      modelList.innerHTML = '';
+      (p.models || []).forEach(function (m) { modelList.appendChild(el('option', { value: m })); });
+    }
+    fillModels();
+    provSel.addEventListener('change', function () {
+      var p = PROVIDERS.filter(function (x) { return x.id === provSel.value; })[0];
+      if (p) { baseInput.value = p.baseUrl; if (p.models.length) modelInput.value = p.models[0]; }
+      fillModels();
+    });
+    setCard.appendChild(el('div', { class: 'form-row' }, [field('服务商', provSel), field('API Key', keyInput), field('模型', modelInput), modelList]));
+    setCard.appendChild(el('div', { class: 'form-row' }, [field('Base URL', baseInput), field('温度', tempInput)]));
+    setCard.appendChild(el('div', { class: 'hint', text: '温度（0–2）控制回答随机度：越低越稳定、越标准，越高越有创意，批改建议 0.3。推荐 DeepSeek / SiliconFlow（浏览器直连稳定）。' }));
+    setCard.appendChild(el('button', { class: 'btn btn-primary btn-sm mt', onclick: function () {
+      Store.setSettings({ provider: provSel.value, baseUrl: baseInput.value.trim(), model: modelInput.value.trim(), apiKey: keyInput.value.trim(), temperature: parseFloat(tempInput.value) || 0.3 });
+      toast('模型设置已保存');
+    } }, '保存设置'));
+    root.appendChild(setCard);
 
     /* ================= 真题/范文 ================= */
     var essayCard = el('div', { class: 'card' });
     essayCard.appendChild(el('div', { class: 'flex-between' },
-      [el('h3', { text: '📖 真题 / 范文管理' }), el('button', { class: 'btn btn-primary btn-sm', onclick: function () { essayForm(null, refresh); } }, '➕ 新增真题/范文')]));
+      [el('h3', { text: '真题 / 范文管理' }), el('button', { class: 'btn btn-primary btn-sm', onclick: function () { essayForm(null, refresh); } }, '新增真题/范文')]));
     var esSearch = el('input', { class: 'input', id: 'adm-es-search', placeholder: '搜索题目/年份…', style: 'margin-bottom:12px;' });
     esSearch.addEventListener('input', refresh);
     essayCard.appendChild(esSearch);
@@ -59,7 +92,7 @@
     /* ================= 好词好句 ================= */
     var phCard = el('div', { class: 'card' });
     phCard.appendChild(el('div', { class: 'flex-between' },
-      [el('h3', { text: '✨ 好词好句管理' }), el('button', { class: 'btn btn-primary btn-sm', onclick: function () { phraseForm(null, refreshPh); } }, '➕ 新增词句')]));
+      [el('h3', { text: '好词好句管理' }), el('button', { class: 'btn btn-primary btn-sm', onclick: function () { phraseForm(null, refreshPh); } }, '新增词句')]));
     var phBox = el('div', { id: 'adm-ph-box' });
     phCard.appendChild(phBox);
     root.appendChild(phCard);
@@ -82,7 +115,7 @@
 
     /* ================= 导入 / 导出 ================= */
     var ioCard = el('div', { class: 'card' });
-    ioCard.appendChild(el('h3', { text: '💾 导入 / 导出 / 重置' }));
+    ioCard.appendChild(el('h3', { text: '导入 / 导出 / 重置' }));
     var importInput = el('input', { class: 'input', type: 'file', accept: '.json', style: 'display:none;' });
     ioCard.appendChild(el('div', { class: 'flex' },
       [

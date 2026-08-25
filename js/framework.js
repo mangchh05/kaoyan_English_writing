@@ -21,7 +21,7 @@
     if (pre) sessionStorage.removeItem('kyeng.framework');
 
     root.appendChild(el('div', { class: 'page-head' },
-      [el('h2', { text: '🧱 作文框架库' }), el('div', { class: 'sub', text: '各题型的段落框架与万能句型，覆盖图画作文、图表作文、议论文及各类小作文。' })]));
+      [el('h2', { text: '作文框架库' }), el('div', { class: 'sub', text: '各题型的段落框架与万能句型，覆盖图画作文、图表作文、议论文及各类小作文。' })]));
 
     var typeSel = el('select', { class: 'select', id: 'fw-type', style: 'max-width:260px;margin-bottom:16px;' },
       ['全部框架'].concat(fws.map(function (f) { return f.type; })).map(function (t) { return el('option', { value: t === '全部框架' ? '' : t, text: t }); }));

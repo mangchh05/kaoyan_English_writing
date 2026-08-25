@@ -41,8 +41,8 @@
     }
 
     body.appendChild(el('div', { class: 'modal-actions' },
-      [el('button', { class: 'btn btn-primary', onclick: function () { sessionStorage.setItem('kyeng.memorizeEssay', e.id); location.hash = 'memorize'; modal.close(); } }, '🧠 背诵这篇'),
-        el('button', { class: 'btn btn-outline', onclick: function () { goCorrect(e); modal.close(); } }, '✍️ 就这题练习批改'),
+      [el('button', { class: 'btn btn-primary', onclick: function () { sessionStorage.setItem('kyeng.memorizeEssay', e.id); location.hash = 'memorize'; modal.close(); } }, '背诵这篇'),
+        el('button', { class: 'btn btn-outline', onclick: function () { goCorrect(e); modal.close(); } }, '就这题练习批改'),
         e.framework ? el('button', { class: 'btn btn-ghost', onclick: function () { sessionStorage.setItem('kyeng.framework', e.framework); location.hash = 'framework'; modal.close(); } }, '查看「' + e.framework + '」框架') : null]));
   }
 
@@ -55,7 +55,7 @@
     var essays = Store.getEssays().slice().sort(function (a, b) { return b.year - a.year; });
 
     root.appendChild(el('div', { class: 'page-head' },
-      [el('h2', { text: '📖 真题库' }), el('div', { class: 'sub', text: '历年考研英语（英语一 / 英语二）作文题目、范文与要点拆解。范文为本站撰写，题目请以官方真题为准。' })]));
+      [el('h2', { text: '真题库' }), el('div', { class: 'sub', text: '历年考研英语（英语一 / 英语二）作文题目、范文与要点拆解。范文为本站撰写，题目请以官方真题为准。' })]));
 
     var types = uniq(essays.map(function (e) { return e.type; }));
     var years = uniq(essays.map(function (e) { return String(e.year); })).sort(function (a, b) { return b - a; });

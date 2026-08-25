@@ -82,7 +82,7 @@
     try { prefill = JSON.parse(sessionStorage.getItem('kyeng.prefillTopic') || '{}'); } catch (e) { prefill = {}; }
 
     root.appendChild(el('div', { class: 'page-head' },
-      [el('h2', { text: '✍️ AI 作文批改' }), el('div', { class: 'sub', text: '上传 Word 或粘贴作文，结合本站评分标准与该题要点，调用大模型给出评分与批改意见。' })]));
+      [el('h2', { text: 'AI 作文批改' }), el('div', { class: 'sub', text: '上传 Word 或粘贴作文，结合本站评分标准与该题要点，调用大模型给出评分与批改意见。' })]));
 
     // ---------- 两栏布局 ----------
     var grid = el('div', { class: 'grid-correction' });
@@ -92,52 +92,33 @@
     grid.appendChild(colSide);
     root.appendChild(grid);
 
-    /* ================= 右侧栏：模型设置 ================= */
+    /* ================= 右侧栏：模型设置状态 + 使用提示 ================= */
+    var s0 = Store.getSettings();
+    var p0 = getProvider(s0.provider);
     var setCard = el('div', { class: 'card side-card' });
-    setCard.appendChild(el('h3', { text: '🔑 模型设置' }));
-    var provSel = el('select', { class: 'select', id: 'prov-sel' },
-      PROVIDERS.map(function (p) { return el('option', { value: p.id, text: p.name }); }));
-    provSel.value = settings.provider;
-    var keyInput = el('input', { class: 'input', id: 'api-key', type: 'password', placeholder: 'sk-…（仅存本机）', value: settings.apiKey });
-    var baseInput = el('input', { class: 'input', id: 'base-url', placeholder: 'https://…/v1', value: settings.baseUrl });
-    var modelInput = el('input', { class: 'input', id: 'model', placeholder: '模型名', value: settings.model, list: 'model-list' });
-    var modelList = el('datalist', { id: 'model-list' }, getProvider(settings.provider).models.map(function (m) { return el('option', { value: m }); }));
-    var tempInput = el('input', { class: 'input', id: 'temp', type: 'number', step: '0.1', min: '0', max: '2', value: settings.temperature });
-    setCard.appendChild(field('服务商', provSel));
-    setCard.appendChild(field('API Key', keyInput));
-    setCard.appendChild(field('Base URL', baseInput));
-    setCard.appendChild(field('模型', modelInput));
-    setCard.appendChild(modelList);
-    setCard.appendChild(field('温度', tempInput));
-    setCard.appendChild(el('div', { class: 'hint', style: 'padding:8px 12px;', text: '温度（Temperature，0–2）控制回答的随机度：越低越稳定、越标准，越高越有创意。作文批改建议 0.3 左右。' }));
-    setCard.appendChild(el('button', { class: 'btn btn-primary btn-block mt', onclick: function () { saveSettings(); } }, '保存设置'));
-    setCard.appendChild(el('div', { class: 'hint mt', text: '推荐 DeepSeek / SiliconFlow（浏览器直连稳定）。API Key 只存在你本机浏览器，不会上传任何服务器。' }));
+    setCard.appendChild(el('h3', { text: '模型设置' }));
+    setCard.appendChild(el('div', { class: 'flex-between' },
+      [el('span', { class: 'small muted', text: '服务商' }), el('span', { class: 'badge', text: p0.name.split('（')[0] })]));
+    setCard.appendChild(el('div', { class: 'flex-between mt' },
+      [el('span', { class: 'small muted', text: '模型' }), el('span', { class: 'badge gray', text: s0.model || '未设置' })]));
+    setCard.appendChild(el('div', { class: 'flex-between mt' },
+      [el('span', { class: 'small muted', text: 'API Key' }), el('span', { class: 'badge gray', text: s0.apiKey ? '已保存' : '未配置' })]));
+    setCard.appendChild(el('button', { class: 'btn btn-outline btn-block mt', onclick: function () { location.hash = 'admin'; } }, '前往「数据管理」配置'));
+    setCard.appendChild(el('div', { class: 'hint mt', text: '模型设置已移至「数据管理」页，配置后此处自动生效。' }));
     colSide.appendChild(setCard);
 
     var tipCard = el('div', { class: 'card side-card' });
-    tipCard.appendChild(el('h4', { style: 'margin-bottom:8px;', text: '💡 使用提示' }));
+    tipCard.appendChild(el('h4', { style: 'margin-bottom:8px;', text: '使用提示' }));
     tipCard.appendChild(el('ul', { style: 'padding-left:18px;' },
-      ['先在上方保存模型设置并填入 API Key', '左侧上传 .docx 或粘贴作文', '若填了“作文题目/话题”，批改会结合该题要点更精准', '每次批改结果会保存到左下角“批改历史”'].map(function (t) {
+      ['模型服务商与 API Key 请到「数据管理」页配置', '左侧上传 .docx 或粘贴作文', '若填了“作文题目/话题”，批改会结合该题要点更精准', '每次批改结果会保存到左下角“批改历史”'].map(function (t) {
         return el('li', { text: t, style: 'margin-bottom:5px;' });
       })));
     colSide.appendChild(tipCard);
 
-    function saveSettings() {
-      Store.setSettings({ provider: provSel.value, baseUrl: baseInput.value.trim(), model: modelInput.value.trim(), apiKey: keyInput.value.trim(), temperature: parseFloat(tempInput.value) || 0.3 });
-      toast('模型设置已保存');
-    }
-    provSel.addEventListener('change', function () {
-      var p = getProvider(provSel.value);
-      baseInput.value = p.baseUrl;
-      if (p.models.length) modelInput.value = p.models[0];
-      modelList.innerHTML = '';
-      p.models.forEach(function (m) { modelList.appendChild(el('option', { value: m })); });
-    });
-
     /* ================= 左侧主区 ================= */
     // 题目与正文
     var inputCard = el('div', { class: 'card' });
-    inputCard.appendChild(el('h3', { text: '📄 作文题目与正文' }));
+    inputCard.appendChild(el('h3', { text: '作文题目与正文' }));
     var topicRow = el('div', { class: 'form-row' });
     var examSel = el('select', { class: 'select', id: 'exam-sel' }, [el('option', { value: '英语一', text: '英语一' }), el('option', { value: '英语二', text: '英语二' })]);
     var partSel = el('select', { class: 'select', id: 'part-sel' }, [el('option', { value: '大作文', text: '大作文' }), el('option', { value: '小作文', text: '小作文' })]);
@@ -149,8 +130,8 @@
     inputCard.appendChild(topicRow);
 
     var tabs = el('div', { class: 'tabs' });
-    var tabUpload = el('div', { class: 'tab active', text: '📎 上传 Word (.docx)', onclick: function () { switchInput('upload'); } });
-    var tabPaste = el('div', { class: 'tab', text: '📝 直接粘贴文本', onclick: function () { switchInput('paste'); } });
+    var tabUpload = el('div', { class: 'tab active', text: '上传 Word (.docx)', onclick: function () { switchInput('upload'); } });
+    var tabPaste = el('div', { class: 'tab', text: '直接粘贴文本', onclick: function () { switchInput('paste'); } });
     tabs.appendChild(tabUpload);
     tabs.appendChild(tabPaste);
     inputCard.appendChild(tabs);
@@ -172,12 +153,12 @@
 
     // 提交
     var actionCard = el('div', { class: 'card' });
-    actionCard.appendChild(el('h3', { text: '📊 基本统计（本地即时计算）' }));
+    actionCard.appendChild(el('h3', { text: '基本统计（本地即时计算）' }));
     var statBox = el('div', { id: 'stat-box' });
     actionCard.appendChild(statBox);
     var submitBtn = el('button', { class: 'btn btn-primary btn-block mt', id: 'submit-btn', onclick: submit }, '开始 AI 批改');
     actionCard.appendChild(submitBtn);
-    actionCard.appendChild(el('div', { class: 'hint', text: '提交时将发送「题目 + 作文」到右侧配置的模型接口；请先保存设置并填写 API Key。' }));
+    actionCard.appendChild(el('div', { class: 'hint', text: '提交时将发送「题目 + 作文」到你配置的模型接口；模型设置请见「数据管理」页。' }));
     colMain.appendChild(actionCard);
 
     var resultBox = el('div', { id: 'result-box' });
@@ -186,7 +167,7 @@
     // 历史
     var histCard = el('div', { class: 'card' });
     histCard.appendChild(el('div', { class: 'flex-between' },
-      [el('h3', { text: '🕘 批改历史（本地）' }), el('button', { class: 'btn btn-ghost btn-sm', onclick: function () { Store.clearHistory(); renderHistory(); toast('已清空'); } }, '清空')]));
+      [el('h3', { text: '批改历史（本地）' }), el('button', { class: 'btn btn-ghost btn-sm', onclick: function () { Store.clearHistory(); renderHistory(); toast('已清空'); } }, '清空')]));
     var histBox = el('div', { id: 'hist-box' });
     histCard.appendChild(histBox);
     colMain.appendChild(histCard);
@@ -246,7 +227,7 @@
       var text = textarea.value.trim();
       var s2 = Store.getSettings();
       if (!text) { toast('请先上传或粘贴作文内容'); switchInput('paste'); return; }
-      if (!s2.apiKey) { toast('请先在右侧填写 API Key 并保存设置'); return; }
+      if (!s2.apiKey) { toast('请先在「数据管理」页配置 API Key'); return; }
       if (!s2.baseUrl || !s2.model) { toast('请填写 API Base URL 与模型名称'); return; }
 
       var exam = examSel.value, part = partSel.value;
@@ -322,4 +303,7 @@
     renderHistory();
     if (prefill.type) { topicInput.value = prefill.topic || ''; toast('已带入题目，请粘贴/上传你的作文'); }
   };
+
+  // 供「数据管理」页复用服务商列表
+  window.AI_PROVIDERS = PROVIDERS;
 })();

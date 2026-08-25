@@ -7,11 +7,11 @@
 
   App.pages.guide = function (root) {
     root.appendChild(el('div', { class: 'page-head' },
-      [el('h2', { text: '📋 写作指南' }), el('div', { class: 'sub', text: '考研英语写作评分标准解读 + 高频错误对照纠正。' })]));
+      [el('h2', { text: '写作指南' }), el('div', { class: 'sub', text: '考研英语写作评分标准解读 + 高频错误对照纠正。' })]));
 
     var tabs = el('div', { class: 'tabs' });
-    var tabScore = el('div', { class: 'tab active', text: '📊 评分标准' });
-    var tabErr = el('div', { class: 'tab', text: '⚠️ 高频错误' });
+    var tabScore = el('div', { class: 'tab active', text: '评分标准' });
+    var tabErr = el('div', { class: 'tab', text: '高频错误' });
     tabs.appendChild(tabScore); tabs.appendChild(tabErr);
     root.appendChild(tabs);
 
@@ -69,7 +69,7 @@
         card.appendChild(el('div', { class: 'flex mb' }, [el('span', { class: 'badge red', text: e.category })]));
         card.appendChild(el('div', {}, [el('span', { class: 'small muted', text: '错误：' }), el('span', { text: e.wrong, style: 'color:var(--danger);text-decoration:line-through;font-family:var(--mono);' })]));
         card.appendChild(el('div', {}, [el('span', { class: 'small muted', text: '正确：' }), el('span', { text: e.right, style: 'color:#389e0d;font-family:var(--mono);' })]));
-        card.appendChild(el('div', { class: 'small muted', style: 'margin-top:4px;', text: '💡 ' + e.note }));
+        card.appendChild(el('div', { class: 'small muted', style: 'margin-top:4px;', text: e.note }));
         errBox.appendChild(card);
       });
     }

@@ -14,11 +14,11 @@
     var prog = Store.getProgress();
 
     root.appendChild(el('div', { class: 'page-head' },
-      [el('h2', { text: '🧠 范文背诵 & 好词好句' }), el('div', { class: 'sub', text: '渐进式背诵范文，按话题积累好词好句，背诵进度与收藏保存在本地。' })]));
+      [el('h2', { text: '范文背诵与好词好句' }), el('div', { class: 'sub', text: '渐进式背诵范文，按话题积累好词好句，背诵进度与收藏保存在本地。' })]));
 
     var tabs = el('div', { class: 'tabs' });
-    var tabEssay = el('div', { class: 'tab active', text: '📖 范文背诵' });
-    var tabPhrase = el('div', { class: 'tab', text: '✨ 好词好句' });
+    var tabEssay = el('div', { class: 'tab active', text: '范文背诵' });
+    var tabPhrase = el('div', { class: 'tab', text: '好词好句' });
     tabs.appendChild(tabEssay); tabs.appendChild(tabPhrase);
     root.appendChild(tabs);
 
@@ -48,7 +48,7 @@
     [['full', '完整'], ['cloze', '挖空背诵'], ['sentence', '遮挡句子'], ['paragraph', '逐段显示']].forEach(function (m) {
       toolbar.appendChild(el('button', { class: 'btn ' + (curMode === m[0] ? 'btn-primary' : 'btn-outline') + ' btn-sm', 'data-mode': m[0], text: m[1], onclick: function () { curMode = m[0]; paragraphShown = 0; renderRecite(); } }));
     });
-    var checkinBtn = el('button', { class: 'btn btn-sm', id: 'checkin-btn', onclick: toggleMemorized }, '✅ 打卡');
+    var checkinBtn = el('button', { class: 'btn btn-sm', id: 'checkin-btn', onclick: toggleMemorized }, '标记已背诵');
     toolbar.appendChild(checkinBtn);
     essayPane.appendChild(toolbar);
 
@@ -61,14 +61,14 @@
       p.memorized = p.memorized || [];
       var idx = p.memorized.indexOf(curEssay.id);
       if (idx >= 0) { p.memorized.splice(idx, 1); toast('已取消打卡'); }
-      else { p.memorized.push(curEssay.id); toast('🎉 打卡成功！已记录'); }
+      else { p.memorized.push(curEssay.id); toast('打卡成功！已记录'); }
       Store.setProgress(p);
       updateCheckin();
     }
     function updateCheckin() {
       var p = Store.getProgress();
       var done = curEssay && (p.memorized || []).indexOf(curEssay.id) >= 0;
-      checkinBtn.textContent = done ? '✅ 已背诵' : '⬜ 打卡';
+      checkinBtn.textContent = done ? '已背诵' : '标记已背诵';
       checkinBtn.className = 'btn btn-sm ' + (done ? 'btn-primary' : 'btn-outline');
     }
 

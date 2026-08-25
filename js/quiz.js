@@ -103,7 +103,7 @@
     var pre = el('div', { class: 'essay-text', style: 'margin-top:0;white-space:pre-wrap;', text: quiz.text });
     card.appendChild(pre);
     var actions = el('div', { class: 'flex mt' },
-      [el('button', { class: 'btn btn-primary', onclick: function () { goCorrect(quiz); } }, '✍️ 带着这题去批改'),
+      [el('button', { class: 'btn btn-primary', onclick: function () { goCorrect(quiz); } }, '带着这题去批改'),
         quiz.essayId ? el('button', { class: 'btn btn-outline', onclick: function () { sessionStorage.setItem('kyeng.openEssay', quiz.essayId); location.hash = 'library'; } }, '查看该题范文') : null,
         el('button', { class: 'btn btn-ghost', onclick: function () { copyText(quiz.text); } }, '复制题目')]);
     card.appendChild(actions);
@@ -136,9 +136,9 @@
       [el('h2', { text: '考研英语写作 · 一站式训练平台' }),
         el('p', { text: '真题范文 · 要点拆解 · 好词好句 · 作文框架 · 模拟出题 · AI 批改，帮助你系统攻克考研英语（英语一 / 英语二）写作。' }),
         el('div', { class: 'hero-actions' },
-          [el('button', { class: 'btn btn-outline', onclick: function () { location.hash = 'library'; } }, '📖 进入真题库'),
-            el('button', { class: 'btn btn-outline', onclick: function () { location.hash = 'correct'; } }, '✍️ 上传作文批改'),
-            el('button', { class: 'btn btn-outline', onclick: function () { location.hash = 'memorize'; } }, '🧠 开始背诵')])]));
+          [el('button', { class: 'btn btn-outline', onclick: function () { location.hash = 'library'; } }, '进入真题库'),
+            el('button', { class: 'btn btn-outline', onclick: function () { location.hash = 'correct'; } }, '上传作文批改'),
+            el('button', { class: 'btn btn-outline', onclick: function () { location.hash = 'memorize'; } }, '开始背诵')])]));
 
     // 统计
     var stats = el('div', { class: 'grid grid-4 mb' });
@@ -152,7 +152,7 @@
 
     // 模拟出题
     var quizCard = el('div', { class: 'card' });
-    quizCard.appendChild(el('h3', { text: '🎲 模拟出题' }));
+    quizCard.appendChild(el('h3', { text: '模拟出题' }));
     var bar = el('div', { class: 'filterbar' },
       [el('select', { class: 'select', id: 'quiz-type', style: 'max-width:200px;' },
           ['全部（随机）', '图画作文', '图表作文', '书信', '通知'].map(function (t) { return el('option', { value: t === '全部（随机）' ? '' : t, text: t }); })),
@@ -168,17 +168,16 @@
     quick.appendChild(el('h3', { text: '快速开始' }));
     quick.appendChild(el('div', { class: 'grid grid-3' },
       [
-        [['📖', '真题库', '查看历年真题题目、范文与要点'], 'library'],
-        [['✍️', 'AI 批改', '上传 Word 或粘贴作文，获取专业批改'], 'correct'],
-        [['🧠', '范文背诵', '渐进式背诵范文与好词好句'], 'memorize'],
-        [['🧱', '作文框架', '各题型段落框架与万能句型'], 'framework'],
-        [['📋', '写作指南', '评分标准与高频错误对照'], 'guide'],
-        [['⚙️', '数据管理', '录入/更新真题与范文数据'], 'admin']
+        [['真题库', '查看历年真题题目、范文与要点'], 'library'],
+        [['AI 批改', '上传 Word 或粘贴作文，获取专业批改'], 'correct'],
+        [['范文背诵', '渐进式背诵范文与好词好句'], 'memorize'],
+        [['作文框架', '各题型段落框架与万能句型'], 'framework'],
+        [['写作指南', '评分标准与高频错误对照'], 'guide'],
+        [['数据管理', '录入/更新真题与范文数据'], 'admin']
       ].map(function (q) {
         return el('div', { class: 'list-item', onclick: function () { location.hash = q[1]; } },
-          [el('div', { style: 'font-size:24px;', text: q[0][0] }),
-            el('div', { class: 'li-main' },
-              [el('div', { class: 'li-title', text: q[0][1] }), el('div', { class: 'li-sub', text: q[0][2] })])]);
+          [el('div', { class: 'li-main' },
+            [el('div', { class: 'li-title', text: q[0][0] }), el('div', { class: 'li-sub', text: q[0][1] })])]);
       })));
     root.appendChild(quick);
 

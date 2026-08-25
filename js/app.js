@@ -5,14 +5,32 @@
   'use strict';
 
   var ROUTES = [
-    { hash: 'home', title: '主页', icon: '🏠' },
-    { hash: 'library', title: '真题库', icon: '📖' },
-    { hash: 'correct', title: 'AI 批改', icon: '✍️' },
-    { hash: 'memorize', title: '范文背诵', icon: '🧠' },
-    { hash: 'framework', title: '作文框架', icon: '🧱' },
-    { hash: 'guide', title: '写作指南', icon: '📋' },
-    { hash: 'admin', title: '数据管理', icon: '⚙️' }
+    { hash: 'home', title: '主页', svg: 'M3 10.5 12 3l9 7.5V21h-5v-6h-8v6H3z' },
+    { hash: 'library', title: '真题库', svg: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5' },
+    { hash: 'correct', title: 'AI 批改', svg: 'M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z' },
+    { hash: 'memorize', title: '范文背诵', svg: 'M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10zM12 18a6 6 0 1 0-6-6 6 6 0 0 0 6 6zM12 14a2 2 0 1 0-2-2 2 2 0 0 0 2 2z' },
+    { hash: 'framework', title: '作文框架', svg: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z' },
+    { hash: 'guide', title: '写作指南', svg: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' },
+    { hash: 'admin', title: '数据管理', svg: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6' }
   ];
+
+  /* ---------- SVG 线性图标 ---------- */
+  function iconSvg(d) {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('width', '17');
+    svg.setAttribute('height', '17');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '1.8');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    var p = document.createElementNS(ns, 'path');
+    p.setAttribute('d', d);
+    svg.appendChild(p);
+    return svg;
+  }
 
   /* ---------- 通用 DOM 工具 ---------- */
   function el(tag, attrs, children) {
@@ -116,7 +134,7 @@
     nav.innerHTML = '';
     ROUTES.forEach(function (r) {
       var item = el('div', { class: 'nav-item' + (cur === r.hash ? ' active' : ''), onclick: function () { location.hash = r.hash; } },
-        [el('span', { class: 'ico', text: r.icon }), r.title]);
+        [el('span', { class: 'ico' }, iconSvg(r.svg)), el('span', { text: r.title })]);
       nav.appendChild(item);
     });
 
