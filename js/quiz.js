@@ -173,16 +173,17 @@
     var minutes = prog.studyMinutes || {}, byDate = prog.studyByDate || {};
     Object.keys(byDate).forEach(function (k) { minutes[k] = (minutes[k] || 0) + Math.floor(byDate[k] / 60); });
     function dateKey(d) { return d.toISOString().slice(0, 10); }
-    function recordStudy() { var p = Store.getProgress(); p.studyMinutes = p.studyMinutes || {}; var k = dateKey(new Date()); p.studyMinutes[k] = (p.studyMinutes[k] || 0) + 30; Store.setProgress(p); toast('已记录今天 30 分钟学习'); location.hash = 'home'; }
     var today = minutes[dateKey(new Date())] || 0;
+    var todayNum = el('strong', { text: String(today) });
+    function refreshLiveMinutes() { var live = window.App.getLiveStudySeconds ? Math.floor(window.App.getLiveStudySeconds() / 60) : 0; todayNum.textContent = String(today + live); }
     var heat = el('div', { class: 'card study-dashboard' }, [
-      el('div', { class: 'flex-between' }, [el('div', {}, [el('div', { class: 'eyebrow', text: '学习驾驶舱 · STUDY PULSE' }), el('h3', { text: '把今天的努力，变成看得见的进步' })]), el('button', { class: 'btn btn-primary btn-sm', onclick: recordStudy }, '记录今天 +30 分钟')]),
-      el('div', { class: 'study-metrics' }, [el('div', {}, [el('strong', { text: String(today) }), el('span', { text: '今日分钟' })]), el('div', {}, [el('strong', { text: String((prog.memorized || []).length) }), el('span', { text: '已背范文' })]), el('div', {}, [el('strong', { text: String(Object.keys(minutes).filter(function(k){ return minutes[k] > 0; }).length) }), el('span', { text: '学习日' })])]),
+      el('div', { class: 'flex-between' }, [el('div', {}, [el('div', { class: 'eyebrow', text: '学习驾驶舱 · STUDY PULSE' }), el('h3', { text: '把今天的努力，变成看得见的进步' })]), el('span', { class: 'live-status', text: '● ONLINE TIME' })]),
+      el('div', { class: 'study-metrics' }, [el('div', {}, [todayNum, el('span', { text: '今日在线分钟' })]), el('div', {}, [el('strong', { text: String((prog.memorized || []).length) }), el('span', { text: '已背范文' })]), el('div', {}, [el('strong', { text: String(Object.keys(minutes).filter(function(k){ return minutes[k] > 0; }).length) }), el('span', { text: '学习日' })])]),
       el('div', { class: 'heatmap-title' }, [el('span', { text: '近 12 周学习热力' }), el('span', { class: 'muted small', text: '颜色越深，学习越久' })]),
       (function () { var grid = el('div', { class: 'heatmap' }); var end = new Date(); for (var i = 83; i >= 0; i--) { var d = new Date(end); d.setDate(end.getDate() - i); var v = minutes[dateKey(d)] || 0; var level = v >= 120 ? 4 : v >= 60 ? 3 : v >= 30 ? 2 : v > 0 ? 1 : 0; grid.appendChild(el('span', { class: 'heat-cell l' + level, title: dateKey(d) + ' · ' + v + ' 分钟' })); } return grid; })(),
       el('div', { class: 'heat-legend' }, [el('span', { text: '少' }), [0,1,2,3,4].map(function(n){ return el('i', { class: 'heat-cell l' + n }); }), el('span', { text: '多' })])
     ]);
-    root.appendChild(heat); setTimeout(showDailyCheckin, 250);
+    root.appendChild(heat); setInterval(refreshLiveMinutes, 1000); refreshLiveMinutes(); setTimeout(showDailyCheckin, 250);
 
     root.appendChild(el('div', { class: 'hero' },
       [el('h2', { text: '考研英语写作 · 一站式训练平台' }),
