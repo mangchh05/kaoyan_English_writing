@@ -72,7 +72,7 @@
   }
 
   function genQuiz(type, topic) {
-    var bank = window.APP_DATA_SIMULATIONS || [];
+    var bank = window.APP_DATA_SIMULATIONS_SOURCE || [];
     var pool = bank.filter(function (q) { return !type || q.type === type || (type === '英语一大作文' && q.exam === '英语一' && q.part === '大作文') || (type === '英语二大作文' && q.exam === '英语二' && q.part === '大作文') || (type === '英语一小作文' && q.exam === '英语一' && q.part === '小作文') || (type === '英语二小作文' && q.exam === '英语二' && q.part === '小作文'); });
     if (!pool.length) pool = bank;
     var q = pool[Math.floor(Math.random() * pool.length)];

@@ -44,7 +44,8 @@
   function basePhrases() {
     var base = (window.APP_DATA_META && window.APP_DATA_META.phrases) || [];
     var extra = window.APP_DATA_PHRASES_EXTRA || [];
-    return base.concat(extra);
+    var imported = window.APP_DATA_PHRASES_IMPORTED || [];
+    return base.concat(extra, imported);
   }
 
   function applyOverrides(list, overridesMap) {

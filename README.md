@@ -16,7 +16,9 @@
 | 写作指南 | 考研英语写作**评分标准**（英语一/英语二/小作文各 5 档）+ **高频错误**对照纠正 |
 | 数据管理 | **输入口**：配置模型设置、录入/编辑/删除真题范文与好词好句；导入/导出 JSON；导出可直接提交 git 的真题 JS 文件 |
 
-**配图能力**：英语一 2010–2024 真题已绑定项目内 `kaoyan_english_cartoon/` 原图；图表作文继续使用按公开真题数据复刻的 SVG 图表；模拟题库内置英一/英二大作文、小作文各 10 题，图画题和图表题均已预置素材。模拟题不再依赖 AI 随机生成。
+**配图能力**：英语一 2010–2024 真题已绑定项目内 `kaoyan_english_cartoon/` 原图；图表作文继续使用按公开真题数据复刻的 SVG 图表；模拟题库已替换为用户提供的本地资料包 30 篇（英一 15 篇、英二 15 篇），配套图片已复制到 `assets/simulations/`。模拟题不再依赖 AI 随机生成。
+
+**资料导入**：用户提供的好词好句 Word 汇总已转换为 `js/data-phrases-imported.js`，与原有素材合并展示，共导入 235 条可检索内容。
 
 **学习记录**：主页的“记录今天 +30 分钟”会把学习时长保存到浏览器 localStorage，并以近 12 周热力矩阵展示，颜色越深表示当天学习时间越长。
 
@@ -120,7 +122,8 @@ window.APP_DATA_EN1 = [
 考研英语定制化/
 ├── index.html                # 应用入口（单页应用）
 ├── css/style.css             # 样式（纸墨书卷 · 学术风）
-├── assets/                   # 模拟图画题预生成图片
+├── assets/                   # 用户资料包中的模拟题配图
+│   └── simulations/          # 30 篇模拟题对应的 14 张图片
 ├── kaoyan_english_cartoon/   # 2010–2024 英语一真题原图
 ├── js/
 │   ├── app.js                # 路由 + 导航 + SVG 图标 + UI 工具
@@ -133,7 +136,9 @@ window.APP_DATA_EN1 = [
 │   ├── data-essays-xiao.js   # 小作文真题范文
 │   ├── data-images-charts.js # 真题图表数据
 │   ├── data-images-scenes.js # 真题图画场景标注
-│   ├── quiz.js               # 主页 + 模拟出题（自动生成图表/图画）
+│   ├── quiz.js               # 主页 + 本地固定模拟题抽题
+│   ├── data-simulations-source.js # 用户资料包导入的 30 篇模拟题
+│   ├── data-phrases-imported.js   # 用户 Word 汇总导入的好词好句
 │   ├── library.js            # 真题库
 │   ├── correction.js         # AI 批改 + docx 解析 + 本地统计
 │   ├── memorize.js           # 范文背诵 + 好词好句
