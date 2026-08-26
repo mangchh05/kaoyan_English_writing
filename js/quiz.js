@@ -109,6 +109,7 @@
     card.appendChild(pre);
     var actions = el('div', { class: 'flex mt' },
       [el('button', { class: 'btn btn-primary', onclick: function () { goCorrect(quiz); } }, '带着这题去批改'),
+        el('button', { class: 'btn btn-outline', onclick: function () { startTraining(quiz); } }, '开始今日训练'),
         quiz.essayId ? el('button', { class: 'btn btn-outline', onclick: function () { sessionStorage.setItem('kyeng.openEssay', quiz.essayId); location.hash = 'library'; } }, '查看该题范文') : null,
         el('button', { class: 'btn btn-ghost', onclick: function () { copyText(quiz.text); } }, '复制题目')]);
     card.appendChild(actions);
@@ -122,6 +123,13 @@
     else if (quiz.scene) pre.image = { scene: quiz.scene };
     sessionStorage.setItem('kyeng.prefillTopic', JSON.stringify(pre));
     location.hash = 'correct';
+  }
+
+  function startTraining(quiz) {
+    var question = quiz && quiz.essayId ? Store.getEssayById(quiz.essayId) : (window.APP_DATA_SIMULATIONS_SOURCE || []).filter(function (q) { return q.id === quiz.id; })[0];
+    if (!question) { toast('找不到这道题，无法创建训练会话'); return; }
+    TrainingSession.startForQuestion(question, quiz.essayId ? 'real' : 'simulation');
+    location.hash = 'today';
   }
 
   function copyText(text) {
@@ -152,10 +160,10 @@
     modalBody.appendChild(el('div', { class: 'eyebrow', text: 'DAILY CHECK-IN' }));
     modalBody.appendChild(el('h2', { text: done ? '今天也在路上' : '准备好开始今天的训练了吗？' }));
     modalBody.appendChild(el('p', { class: 'quote', text: quotes[new Date().getDate() % quotes.length] }));
-    modalBody.appendChild(el('button', { class: 'btn btn-primary', onclick: function () {
+    modalBody.appendChild(el('button', { class: 'btn btn-outline', onclick: function () {
       var pp = Store.getProgress(); pp.checkins = pp.checkins || {}; pp.streak = pp.streak || {};
       if (!pp.checkins[today]) { pp.checkins[today] = true; pp.streak.current = (pp.streak.current || 0) + 1; Store.setProgress(pp); }
-      modal.close(); var success = UI.openModal(el('div', { class: 'checkin-modal checkin-success' }, [el('div', { class: 'checkin-orbit', text: '✓' }), el('h2', { text: '签到成功' }), el('p', { text: '这是你连续学习的第 ' + (pp.streak.current || 1) + ' 天' }), el('p', { class: 'quote', text: quotes[(new Date().getDate() + 1) % quotes.length] }), el('button', { class: 'btn btn-primary', onclick: function () { success.close(); } }, '开始学习')]));
+      modal.close(); var success = UI.openModal(el('div', { class: 'checkin-modal checkin-success' }, [el('div', { class: 'checkin-orbit', text: '✓' }), el('h2', { text: '签到成功' }), el('p', { text: '这是你连续学习的第 ' + (pp.streak.current || 1) + ' 天' }), el('p', { class: 'quote', text: quotes[(new Date().getDate() + 1) % quotes.length] }), el('button', { class: 'btn btn-outline', onclick: function () { success.close(); } }, '开始学习')]));
     } }, done ? '继续学习' : '完成今日签到'));
     var modal = UI.openModal(modalBody);
   }
@@ -168,67 +176,77 @@
 
   /* ---------- 主页 ---------- */
   App.pages.home = function (root) {
-    var essays = Store.getEssays();
     var prog = Store.getProgress();
     var minutes = prog.studyMinutes || {}, byDate = prog.studyByDate || {};
     Object.keys(byDate).forEach(function (k) { minutes[k] = (minutes[k] || 0) + Math.floor(byDate[k] / 60); });
     function dateKey(d) { return d.toISOString().slice(0, 10); }
-    var today = minutes[dateKey(new Date())] || 0;
     var history = Store.getHistory();
-    var coach = el('div', { class: 'coach-card card' }, [
-      el('div', { class: 'coach-copy' }, [el('div', { class: 'eyebrow', text: 'GOOD MORNING · 写作教练' }), el('h2', { text: '今天，也为上岸积累一点点。' }), el('p', { text: history.length ? '上次训练：' + (history[0].topic || '作文练习') + '。继续把反馈变成分数。' : '先完成一次训练，系统会开始建立你的写作能力画像。' })]),
-      el('div', { class: 'coach-actions' }, [el('button', { class: 'btn btn-primary', onclick: function () { location.hash = history.length ? 'correct' : 'simulations'; } }, history.length ? '继续上次训练' : '开始第一次训练'), el('button', { class: 'btn btn-outline', onclick: function () { location.hash = 'insights'; } }, '查看我的弱项')])
-    ]);
-    root.appendChild(coach);
-    var todayNum = el('strong', { text: String(today) });
-    function refreshLiveMinutes() { var live = window.App.getLiveStudySeconds ? Math.floor(window.App.getLiveStudySeconds() / 60) : 0; todayNum.textContent = String(today + live); }
-    var heat = el('div', { class: 'card study-dashboard' }, [
-      el('div', { class: 'flex-between' }, [el('div', {}, [el('div', { class: 'eyebrow', text: '学习驾驶舱 · STUDY PULSE' }), el('h3', { text: '把今天的努力，变成看得见的进步' })]), el('span', { class: 'live-status', text: '● ONLINE TIME' })]),
-      el('div', { class: 'study-metrics' }, [el('div', {}, [todayNum, el('span', { text: '今日在线分钟' })]), el('div', {}, [el('strong', { text: String((prog.memorized || []).length) }), el('span', { text: '已背范文' })]), el('div', {}, [el('strong', { text: String(Object.keys(minutes).filter(function(k){ return minutes[k] > 0; }).length) }), el('span', { text: '学习日' })])]),
+    var activeSession = TrainingSession.getCurrent();
+    var canResume = activeSession && activeSession.currentStep !== 'completed';
+    var stepNames = { reading: '阅读题目', planning: '列出提纲', writing: '完成初稿', correcting: 'AI 批改', rewriting: '二次重写' };
+    var now = new Date();
+    var todayKey = dateKey(now);
+    var todayMinutes = minutes[todayKey] || 0;
+    var last = history[0] || null;
+    var lastScore = scoreFrom(last);
+    var previousScore = scoreFrom(history[1]);
+    var weekStart = new Date(now);
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(weekStart.getDate() - 6);
+    var weekEssays = history.filter(function (record) {
+      var time = record && record.time ? new Date(record.time) : null;
+      return time && !isNaN(time.getTime()) && time >= weekStart;
+    }).length;
+    var streak = prog.streak && prog.streak.current ? prog.streak.current : 0;
+
+    function scoreFrom(record) {
+      if (!record || !record.result) return null;
+      var text = String(record.result);
+      var patterns = [/总分[^0-9]{0,20}(\d+(?:\.\d+)?)/i, /得分[^0-9]{0,20}(\d+(?:\.\d+)?)/i, /score[^0-9]{0,20}(\d+(?:\.\d+)?)/i, /评分[^0-9]{0,20}(\d+(?:\.\d+)?)/i];
+      for (var i = 0; i < patterns.length; i++) {
+        var match = text.match(patterns[i]);
+        if (match) return Number(match[1]);
+      }
+      return null;
+    }
+
+    function scoreLabel(value) { return value == null ? '—' : String(value) + ' 分'; }
+    function scoreDeltaLabel() {
+      if (lastScore == null || previousScore == null) return '完成两次批改后显示变化';
+      var delta = lastScore - previousScore;
+      return (delta > 0 ? '+' : '') + delta.toFixed(1).replace('.0', '') + ' 分 · 较上次';
+    }
+
+    root.appendChild(el('div', { class: 'home-heading' }, [
+      el('div', {}, [el('div', { class: 'eyebrow', text: 'TODAY · 写作训练工作台' }), el('h2', { text: '今天，完成一轮真正的训练。' }), el('p', { class: 'muted', text: canResume ? '当前停在「' + stepNames[activeSession.currentStep] + '」，继续当前会话即可。' : (last ? '上一轮训练已完成，今天开始新的训练。' : '先完成一篇作文，系统会从今天开始记录你的写作进步。') })])
+    ]));
+
+    root.appendChild(el('div', { class: 'card home-task' }, [
+      el('div', { class: 'home-task-copy' }, [el('div', { class: 'eyebrow', text: 'YOUR NEXT ACTION' }), el('h3', { text: canResume ? '继续当前训练会话' : '开始今天的第一篇作文' }), el('p', { text: canResume ? '上次离开在「' + stepNames[activeSession.currentStep] + '」阶段，所有提纲、草稿和反馈都会保留。' : '去题库选一道真题或固定模拟题，系统会从阅读题目开始记录这次训练。' })]),
+      el('button', { class: 'btn btn-primary', onclick: function () { if (activeSession && activeSession.currentStep === 'completed') Store.clearTrainingSession(); location.hash = 'today'; } }, canResume ? '继续训练' : '开始今日训练')
+    ]));
+
+    root.appendChild(el('div', { class: 'card home-last' }, [
+      el('div', { class: 'flex-between' }, [el('div', {}, [el('div', { class: 'eyebrow', text: 'PREVIOUS SESSION · 上次训练' }), el('h3', { text: last ? (last.topic || '作文练习') : '还没有训练记录' })]), last ? el('span', { class: 'badge gray', text: last.time || '最近一次' }) : null]),
+      el('p', { class: 'muted', text: last ? '你已经完成 ' + (last.words || '—') + ' 词，并保存了一次 AI 批改结果。' : '完成第一篇作文后，这里会显示你昨天或最近一次学到哪里。' }),
+      last ? el('button', { class: 'btn btn-ghost btn-sm', onclick: function () { location.hash = 'essays'; } }, '查看上次反馈') : null
+    ]));
+
+    var todayNum = el('strong', { text: String(todayMinutes) });
+    function refreshLiveMinutes() { var live = window.App.getLiveStudySeconds ? Math.floor(window.App.getLiveStudySeconds() / 60) : 0; todayNum.textContent = String(todayMinutes + live); }
+    var metrics = el('div', { class: 'home-metrics' });
+    [['今日学习时长', todayNum, '在线分钟'], ['连续学习天数', String(streak), '天'], ['本周作文数量', String(weekEssays), '篇'], ['最近得分变化', scoreLabel(lastScore), scoreDeltaLabel()]].forEach(function (metric) {
+      metrics.appendChild(el('div', { class: 'card home-metric' }, [metric[1] instanceof Node ? metric[1] : el('strong', { text: metric[1] }), el('span', { text: metric[0] }), el('small', { text: metric[2] })]));
+    });
+    root.appendChild(metrics);
+
+    var progress = el('div', { class: 'card study-dashboard home-progress' }, [
+      el('div', { class: 'flex-between' }, [el('div', {}, [el('div', { class: 'eyebrow', text: 'RECENT PROGRESS · 最近有没有进步' }), el('h3', { text: '把学习痕迹变成可见的进步' })]), el('span', { class: 'live-status', text: '● ONLINE TIME' })]),
       el('div', { class: 'heatmap-title' }, [el('span', { text: '近 12 周学习热力' }), el('span', { class: 'muted small', text: '颜色越深，学习越久' })]),
       (function () { var grid = el('div', { class: 'heatmap' }); var end = new Date(); for (var i = 83; i >= 0; i--) { var d = new Date(end); d.setDate(end.getDate() - i); var v = minutes[dateKey(d)] || 0; var level = v >= 120 ? 4 : v >= 60 ? 3 : v >= 30 ? 2 : v > 0 ? 1 : 0; grid.appendChild(el('span', { class: 'heat-cell l' + level, title: dateKey(d) + ' · ' + v + ' 分钟' })); } return grid; })(),
       el('div', { class: 'heat-legend' }, [el('span', { text: '少' }), [0,1,2,3,4].map(function(n){ return el('i', { class: 'heat-cell l' + n }); }), el('span', { text: '多' })])
     ]);
-    root.appendChild(heat); setInterval(refreshLiveMinutes, 1000); refreshLiveMinutes(); setTimeout(showDailyCheckin, 250);
-
-    root.appendChild(el('div', { class: 'hero' },
-      [el('h2', { text: '考研英语写作 · 一站式训练平台' }),
-        el('p', { text: '真题范文 · 要点拆解 · 好词好句 · 作文框架 · 模拟出题 · AI 批改，帮助你系统攻克考研英语（英语一 / 英语二）写作。' }),
-        el('div', { class: 'hero-actions' },
-          [el('button', { class: 'btn btn-outline', onclick: function () { location.hash = 'library'; } }, '进入真题库'),
-            el('button', { class: 'btn btn-outline', onclick: function () { location.hash = 'correct'; } }, '上传作文批改'),
-            el('button', { class: 'btn btn-outline', onclick: function () { location.hash = 'memorize'; } }, '开始背诵')])]));
-
-    // 统计
-    var stats = el('div', { class: 'grid grid-4 mb' });
-    [['真题范文', essays.length, '篇'], ['好词好句', Store.getPhrases().length, '条'],
-     ['作文框架', Store.getFrameworks().length, '类'], ['已背范文', (prog.memorized || []).length, '篇']]
-      .forEach(function (s) {
-        stats.appendChild(el('div', { class: 'card stat-card tight' },
-          [el('div', { class: 'num', text: String(s[1]) }), el('div', { class: 'lbl', text: s[0] + ' · ' + s[2] })]));
-      });
-    root.appendChild(stats);
-
-    // 快速入口
-    var quick = el('div', { class: 'card' });
-    quick.appendChild(el('h3', { text: '快速开始' }));
-    quick.appendChild(el('div', { class: 'grid grid-3' },
-      [
-        [['模拟出题', '固定资料题库与配图，按考试类型训练'], 'simulations'],
-        [['真题库', '查看历年真题题目、范文与要点'], 'library'],
-        [['AI 批改', '上传 Word 或粘贴作文，获取专业批改'], 'correct'],
-        [['范文背诵', '渐进式背诵范文与好词好句'], 'memorize'],
-        [['作文框架', '各题型段落框架与万能句型'], 'framework'],
-        [['写作指南', '评分标准与高频错误对照'], 'guide'],
-        [['数据管理', '录入/更新真题与范文数据'], 'admin']
-      ].map(function (q) {
-        return el('div', { class: 'list-item', onclick: function () { location.hash = q[1]; } },
-          [el('div', { class: 'li-main' },
-            [el('div', { class: 'li-title', text: q[0][0] }), el('div', { class: 'li-sub', text: q[0][1] })])]);
-      })));
-    root.appendChild(quick);
-
-    // 自动渲染一题
-    /* 模拟题入口位于“快速开始” */
+    root.appendChild(progress);
+    setInterval(refreshLiveMinutes, 1000); refreshLiveMinutes(); setTimeout(showDailyCheckin, 250);
   };
 })();

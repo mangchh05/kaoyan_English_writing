@@ -12,7 +12,8 @@
     overrides: NS + 'overrides',
     settings: NS + 'settings',
     progress: NS + 'progress',
-    history: NS + 'history'
+    history: NS + 'history',
+    trainingSession: NS + 'trainingSession'
   };
 
   function safeParse(str, fallback) {
@@ -161,6 +162,11 @@
   }
   function clearHistory() { save(KEYS.history, []); }
 
+  /* ---------- 今日训练会话 ---------- */
+  function getTrainingSession() { return load(KEYS.trainingSession, null); }
+  function setTrainingSession(session) { save(KEYS.trainingSession, session); return session; }
+  function clearTrainingSession() { save(KEYS.trainingSession, null); }
+
   /* ---------- 导出 ---------- */
   function exportData() {
     return {
@@ -195,6 +201,9 @@
     addHistory: addHistory,
     deleteHistory: deleteHistory,
     clearHistory: clearHistory,
+    getTrainingSession: getTrainingSession,
+    setTrainingSession: setTrainingSession,
+    clearTrainingSession: clearTrainingSession,
     exportData: exportData
   };
 })();

@@ -78,8 +78,13 @@
 
   App.pages.correct = function (root) {
     var settings = Store.getSettings();
+    var trainingSession = TrainingSession.getCurrent();
     var prefill = {};
     try { prefill = JSON.parse(sessionStorage.getItem('kyeng.prefillTopic') || '{}'); } catch (e) { prefill = {}; }
+    if (trainingSession && trainingSession.currentStep === 'correcting') {
+      var sessionPrefill = TrainingSession.toPrefill(trainingSession);
+      if (sessionPrefill) prefill = sessionPrefill;
+    }
 
     root.appendChild(el('div', { class: 'page-head' },
       [el('h2', { text: 'AI 作文批改' }), el('div', { class: 'sub', text: '上传 Word 或粘贴作文，结合本站评分标准与该题要点，调用大模型给出评分与批改意见。' })]));
@@ -136,6 +141,11 @@
     var examSel = el('select', { class: 'select', id: 'exam-sel' }, [el('option', { value: '英语一', text: '英语一' }), el('option', { value: '英语二', text: '英语二' })]);
     var partSel = el('select', { class: 'select', id: 'part-sel' }, [el('option', { value: '大作文', text: '大作文' }), el('option', { value: '小作文', text: '小作文' })]);
     if (prefill.type === '书信' || prefill.type === '通知') partSel.value = '小作文';
+    if (trainingSession) {
+      examSel.value = trainingSession.examType || examSel.value;
+      var trainingQuestion = TrainingSession.getQuestion(trainingSession);
+      if (trainingQuestion && trainingQuestion.part) partSel.value = trainingQuestion.part;
+    }
     var topicInput = el('input', { class: 'input', id: 'topic-input', placeholder: '作文题目 / 话题（可选，填了批改更精准）', value: prefill.topic || '' });
     topicRow.appendChild(field('考试类型', examSel));
     topicRow.appendChild(field('大 / 小作文', partSel));
@@ -159,6 +169,10 @@
     var textarea = el('textarea', { class: 'textarea mono', id: 'essay-text', placeholder: '把作文粘贴到这里…', style: 'min-height:240px;' });
     pasteBox.appendChild(textarea);
     pasteBox.appendChild(el('div', { class: 'hint', text: '可先将作文粘贴到这里；或切回“上传 Word”直接上传文件。' }));
+    if (trainingSession && trainingSession.draft) {
+      textarea.value = trainingSession.draft;
+      switchInput('paste');
+    }
 
     inputCard.appendChild(uploadBox);
     inputCard.appendChild(pasteBox);
@@ -234,7 +248,10 @@
         })
         .catch(function (err) { status.textContent = '解析失败：' + (err && err.message ? err.message : err) + '，请改用粘贴文本。'; });
     });
-    textarea.addEventListener('input', function () { renderStats(textarea.value); });
+    textarea.addEventListener('input', function () {
+      renderStats(textarea.value);
+      if (trainingSession && trainingSession.currentStep === 'correcting') TrainingSession.update({ draft: textarea.value });
+    });
 
     function submit() {
       var text = textarea.value.trim();
@@ -290,6 +307,11 @@
         Store.addHistory(rec);
         renderResult(content, rec.time, topic);
         renderHistory();
+        var activeSession = TrainingSession.getCurrent();
+        if (activeSession && activeSession.currentStep === 'correcting') {
+          TrainingSession.update({ correctionResult: content, currentStep: 'rewriting' });
+          setTimeout(function () { location.hash = 'today'; }, 0);
+        }
         toast('批改完成');
       }).catch(function (err) {
         var msg = err && err.message ? err.message : String(err);

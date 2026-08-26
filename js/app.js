@@ -4,16 +4,14 @@
 (function () {
   'use strict';
 
+  // V3 日常导航：保留旧页面模块作为底层能力，入口统一收敛到六个学习目的。
   var ROUTES = [
-    { hash: 'home', title: '主页', group: '开始', svg: 'M3 10.5 12 3l9 7.5V21h-5v-6h-8v6H3z' },
-    { hash: 'library', title: '真题训练', group: '训练', svg: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5' },
-    { hash: 'simulations', title: '模拟训练', group: '训练', svg: 'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5' },
-    { hash: 'correct', title: 'AI 批改', group: '训练', svg: 'M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z' },
-    { hash: 'memorize', title: '范文背诵', group: '复习', svg: 'M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10zM12 18a6 6 0 1 0-6-6 6 6 0 0 0 6 6zM12 14a2 2 0 1 0-2-2 2 2 0 0 0 2 0z' },
-    { hash: 'framework', title: '作文框架', group: '复习', svg: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z' },
-    { hash: 'guide', title: '写作指南', group: '复习', svg: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' },
-    { hash: 'insights', title: '我的弱项', group: '我的进步', svg: 'M4 19V5M4 19h16M8 16v-4M12 16V8M16 16V5' },
-    { hash: 'admin', title: '数据管理', group: '我的进步', svg: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6' }
+    { hash: 'home', title: '首页', group: '开始', svg: 'M3 10.5 12 3l9 7.5V21h-5v-6h-8v6H3z' },
+    { hash: 'today', title: '今日训练', group: '训练', svg: 'M6 3v3M18 3v3M4 9h16M6 13h4M6 17h7M5 5h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z' },
+    { hash: 'bank', title: '题库', group: '训练', svg: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5' },
+    { hash: 'essays', title: '我的作文', group: '训练', svg: 'M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z' },
+    { hash: 'materials', title: '素材库', group: '复习', svg: 'M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6z' },
+    { hash: 'reports', title: '学习报告', group: '我的进步', svg: 'M4 19V5M4 19h16M8 16v-4M12 16V8M16 16V5' }
   ];
 
   /* ---------- SVG 线性图标 ---------- */
@@ -155,8 +153,11 @@
 
   function navigate() {
     var r = currentRoute();
+    var aliases = window.App.routeAliases || {};
+    if (aliases[r]) { location.hash = aliases[r]; return; }
     var meta = ROUTES.filter(function (x) { return x.hash === r; })[0];
-    document.getElementById('topbar-title').textContent = meta ? meta.title : '未找到';
+    var hiddenTitles = window.App.routeTitles || {};
+    document.getElementById('topbar-title').textContent = meta ? meta.title : (hiddenTitles[r] || '未找到');
     renderNav();
     var content = document.getElementById('content');
     content.innerHTML = '';

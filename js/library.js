@@ -48,7 +48,8 @@
     }
 
     body.appendChild(el('div', { class: 'modal-actions' },
-      [el('button', { class: 'btn btn-primary', onclick: function () { sessionStorage.setItem('kyeng.memorizeEssay', e.id); location.hash = 'memorize'; modal.close(); } }, '背诵这篇'),
+      [el('button', { class: 'btn btn-primary', onclick: function () { TrainingSession.startForQuestion(e, 'real'); modal.close(); location.hash = 'today'; } }, '开始今日训练'),
+        el('button', { class: 'btn btn-outline', onclick: function () { sessionStorage.setItem('kyeng.memorizeEssay', e.id); location.hash = 'memorize'; modal.close(); } }, '背诵这篇'),
         el('button', { class: 'btn btn-outline', onclick: function () { goCorrect(e); modal.close(); } }, '就这题练习批改'),
         e.framework ? el('button', { class: 'btn btn-ghost', onclick: function () { sessionStorage.setItem('kyeng.framework', e.framework); location.hash = 'framework'; modal.close(); } }, '查看「' + e.framework + '」框架') : null]));
   }
