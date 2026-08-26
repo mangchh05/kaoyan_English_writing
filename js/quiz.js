@@ -72,16 +72,11 @@
   }
 
   function genQuiz(type, topic) {
-    if (type === '图画作文') return genPicturePrompt(topic);
-    if (type === '图表作文') return genChartPrompt();
-    if (type === '书信') return genLetterPrompt();
-    if (type === '通知') return genNoticePrompt();
-    // 随机
-    var r = Math.random();
-    if (r < 0.4) return genPicturePrompt();
-    if (r < 0.7) return genChartPrompt();
-    if (r < 0.9) return genLetterPrompt();
-    return genNoticePrompt();
+    var bank = window.APP_DATA_SIMULATIONS || [];
+    var pool = bank.filter(function (q) { return !type || q.type === type || (type === '英语一大作文' && q.exam === '英语一' && q.part === '大作文') || (type === '英语二大作文' && q.exam === '英语二' && q.part === '大作文') || (type === '英语一小作文' && q.exam === '英语一' && q.part === '小作文') || (type === '英语二小作文' && q.exam === '英语二' && q.part === '小作文'); });
+    if (!pool.length) pool = bank;
+    var q = pool[Math.floor(Math.random() * pool.length)];
+    return JSON.parse(JSON.stringify(q));
   }
 
   function genRealQuestion() {
@@ -181,7 +176,7 @@
     quizCard.appendChild(el('h3', { text: '模拟出题' }));
     var bar = el('div', { class: 'filterbar' },
       [el('select', { class: 'select', id: 'quiz-type', style: 'max-width:200px;' },
-          ['全部（随机）', '图画作文', '图表作文', '书信', '通知'].map(function (t) { return el('option', { value: t === '全部（随机）' ? '' : t, text: t }); })),
+          ['全部模拟题', '英语一大作文', '英语一小作文', '英语二大作文', '英语二小作文'].map(function (t) { return el('option', { value: t === '全部模拟题' ? '' : t, text: t }); })),
         el('button', { class: 'btn btn-primary', onclick: function () { renderQuizResult(resultBox, genQuiz(document.getElementById('quiz-type').value)); } }, '生成模拟题'),
         el('button', { class: 'btn btn-outline', onclick: function () { var q = genRealQuestion(); renderQuizResult(resultBox, q); } }, '抽一道真题')]);
     quizCard.appendChild(bar);
@@ -208,6 +203,6 @@
     root.appendChild(quick);
 
     // 自动渲染一题
-    renderQuizResult(resultBox, genRealQuestion() || genQuiz(''));
+    renderQuizResult(resultBox, genQuiz(''));
   };
 })();
