@@ -18,23 +18,11 @@
 
   var SYSTEM_PROMPT = [
     '你是一位资深的考研英语（全国硕士研究生招生考试英语一/英语二）写作阅卷专家。请对学生作文进行专业、细致、有针对性的批改。',
-    '请使用中文输出，并使用 Markdown 排版，严格按以下结构：',
-    '## 评分',
-    '- 总分：X / 满分Y分（并说明所属档次，如“第五档/第四档”）',
-    '## 总体评价',
-    '（2–3 句话，客观概括优点与不足）',
-    '## 内容与结构',
-    '（是否切题、段落逻辑、衔接手段、字数是否达标）',
-    '## 语言运用',
-    '（语法、词汇、句式；必须指出具体错误，用「原文 → 修改」格式逐条列出，并简要解释原因）',
-    '## 亮点表达',
-    '（指出写得好的词句）',
-    '## 修改建议',
-    '（分点给出可操作的改进方向，并给 1–2 句升级示范）',
-    '## 高分表达参考',
-    '（针对该话题给出 2–3 句地道的加分表达）',
-    '',
-    '要求：评价客观、具体、针对学生原文，避免空话套话；引用学生原文时必须准确。',
+    '只能输出一个合法 JSON 对象，不要输出 Markdown、代码围栏或任何 JSON 以外的文字。',
+    'JSON 必须严格符合以下结构：',
+    '{"totalScore":14.5,"maxScore":20,"dimensions":{"task":4,"content":3,"structure":3,"grammar":2.5,"vocabulary":2,"sentenceVariety":null,"coherence":null,"ideaDevelopment":null},"issues":[{"type":"grammar","original":"原文","suggestion":"修改后","explanation":"中文说明"}],"strengths":["具体优点"],"summary":"2-3句中文总体评价"}',
+    'totalScore 和 dimensions 中能评分的字段必须使用数字；无法可靠拆分的维度使用 null。issues 和 strengths 必须是数组。',
+    '维度分数按当前考试类型和大小作文评分逻辑给出，不能编造学生没有体现的优点。',
     '若用户消息中提供了「评分标准」或「该题高分参考要点」，请严格参照其中的分档要求与要点进行评分与点评。'
   ].join('\n');
 
@@ -140,6 +128,8 @@
     var topicRow = el('div', { class: 'form-row' });
     var examSel = el('select', { class: 'select', id: 'exam-sel' }, [el('option', { value: '英语一', text: '英语一' }), el('option', { value: '英语二', text: '英语二' })]);
     var partSel = el('select', { class: 'select', id: 'part-sel' }, [el('option', { value: '大作文', text: '大作文' }), el('option', { value: '小作文', text: '小作文' })]);
+    examSel.addEventListener('change', function () { Store.setPreferences({ examType: examSel.value }); });
+    partSel.addEventListener('change', function () { Store.setPreferences({ part: partSel.value }); });
     if (prefill.type === '书信' || prefill.type === '通知') partSel.value = '小作文';
     if (trainingSession) {
       examSel.value = trainingSession.examType || examSel.value;
@@ -220,7 +210,7 @@
       resultBox.appendChild(el('div', { class: 'card' },
         [el('div', { class: 'flex-between' },
           [el('h3', { text: '批改结果 · ' + (rec.topic || '未命名题目') }), el('span', { class: 'badge gray', text: rec.time })]),
-          el('div', { class: 'md', html: md(rec.result) })]));
+          el('div', { class: 'md', html: rec.structuredResult ? renderStructured(rec.structuredResult) : md(rec.result) })]));
       window.scrollTo({ top: resultBox.offsetTop - 80, behavior: 'smooth' });
     }
 
@@ -303,13 +293,16 @@
         var content = data && data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
         if (!content) throw new Error('接口未返回内容');
         var stats = localStats(text);
-        var rec = { id: 'h' + Date.now(), time: new Date().toLocaleString('zh-CN'), exam: exam, part: part, topic: topic, words: stats.words, essay: text, result: content };
+        var structured = CorrectionSchema.parse(content);
+        var rec = { id: 'h' + Date.now(), time: new Date().toLocaleString('zh-CN'), exam: exam, part: part, topic: topic, words: stats.words, essay: text, result: content, structuredResult: structured };
         Store.addHistory(rec);
-        renderResult(content, rec.time, topic);
+        var activity = Store.recordLearningActivity('submit_essay');
+        if (activity.checkedIn) toast('Day ' + activity.day + ' ✓ 今天也完成了一次学习。');
+        renderResult(content, rec.time, topic, structured);
         renderHistory();
         var activeSession = TrainingSession.getCurrent();
         if (activeSession && activeSession.currentStep === 'correcting') {
-          TrainingSession.update({ correctionResult: content, currentStep: 'rewriting' });
+          TrainingSession.update({ correctionResult: structured, scoreBefore: structured.totalScore, currentStep: 'rewriting' });
           setTimeout(function () { location.hash = 'today'; }, 0);
         }
         toast('批改完成');
@@ -325,12 +318,21 @@
       });
     }
 
-    function renderResult(content, time, topic) {
+    function renderStructured(result) {
+      var esc = window.UI.escapeHtml;
+      var score = result && result.totalScore != null ? esc(result.totalScore + ' / ' + (result.maxScore || '')) : '待确认';
+      var dimensions = result && result.dimensions ? Object.keys(result.dimensions).filter(function (key) { return result.dimensions[key] != null; }).map(function (key) { return esc(key + '：' + result.dimensions[key]); }).join(' · ') : '';
+      var issues = result && result.issues ? result.issues.map(function (issue) { if (typeof issue === 'string') return esc(issue); return esc((issue.original || '') + (issue.suggestion ? ' → ' + issue.suggestion : '') + (issue.explanation ? '（' + issue.explanation + '）' : '')); }).join('<br>') : '';
+      var strengths = result && result.strengths ? result.strengths.map(esc).join('<br>') : '';
+      return '<div class="structured-result"><h4>本轮得分：' + score + '</h4><p>' + esc(result.summary || '') + '</p>' + (dimensions ? '<p><strong>评分维度：</strong>' + dimensions + '</p>' : '') + (issues ? '<p><strong>重点问题：</strong><br>' + issues + '</p>' : '') + (strengths ? '<p><strong>亮点：</strong><br>' + strengths + '</p>' : '') + (result.rawText ? '<details><summary>查看原始批改文本</summary><pre>' + esc(result.rawText) + '</pre></details>' : '') + '</div>';
+    }
+
+    function renderResult(content, time, topic, structured) {
       resultBox.innerHTML = '';
       resultBox.appendChild(el('div', { class: 'card result-card' },
         [el('div', { class: 'flex-between' },
           [el('h3', { text: '批改结果 · ' + (topic || '未命名题目') }), el('span', { class: 'badge gray', text: time || '' })]),
-          el('div', { class: 'md', html: md(content) })]));
+          el('div', { class: 'md', html: structured ? renderStructured(structured) : md(content) })]));
       window.scrollTo({ top: resultBox.offsetTop - 80, behavior: 'smooth' });
     }
 

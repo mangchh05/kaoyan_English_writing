@@ -22,32 +22,48 @@
     return value == null ? value : JSON.parse(JSON.stringify(value));
   }
 
+  function normalizeCorrectionResult(result) {
+    if (result == null || result === '') return null;
+    return window.CorrectionSchema ? window.CorrectionSchema.parse(result) : result;
+  }
+
   function normalizeInput(input) {
     input = input || {};
     return {
-      sessionId: input.sessionId || makeId(),
+      id: input.id || input.sessionId || makeId(),
+      sessionId: input.sessionId || input.id || makeId(),
       examType: input.examType || '英语一',
       questionId: input.questionId || '',
       questionSource: input.questionSource || 'real',
+      questionType: input.questionType || '',
       startedAt: input.startedAt || new Date().toISOString(),
+      updatedAt: input.updatedAt || input.startedAt || new Date().toISOString(),
       currentStep: input.currentStep || 'reading',
       outline: input.outline || '',
       draft: input.draft || '',
-      correctionResult: input.correctionResult || '',
+      correctionResult: normalizeCorrectionResult(input.correctionResult),
       rewrite: input.rewrite || '',
+      scoreBefore: input.scoreBefore == null ? null : input.scoreBefore,
+      scoreAfter: input.scoreAfter == null ? null : input.scoreAfter,
       completedAt: input.completedAt || null
     };
   }
 
   function getCurrent() {
     var session = Store.getTrainingSession();
-    if (!session || !session.sessionId) return null;
-    return normalizeInput(session);
+    if (!session || (!session.sessionId && !session.id)) return null;
+    var normalized = normalizeInput(session);
+    if (JSON.stringify(session) !== JSON.stringify(normalized)) Store.setTrainingSession(normalized);
+    return normalized;
   }
 
   function start(input) {
     var session = normalizeInput(input);
+    session.id = session.sessionId;
+    session.updatedAt = new Date().toISOString();
     Store.setTrainingSession(session);
+    var activity = Store.recordLearningActivity('start_training');
+    if (activity.checkedIn && window.UI) window.UI.toast('Day ' + activity.day + ' ✓ 今天也完成了一次学习。');
     return session;
   }
 
@@ -57,6 +73,7 @@
     Object.keys(changes || {}).forEach(function (key) {
       if (Object.prototype.hasOwnProperty.call(current, key)) current[key] = changes[key];
     });
+    current.updatedAt = new Date().toISOString();
     Store.setTrainingSession(current);
     return current;
   }
@@ -101,11 +118,15 @@
 
   function startForQuestion(question, source) {
     if (!question) return null;
-    return start({
+    var session = start({
       examType: question.exam || '英语一',
       questionId: question.id,
-      questionSource: source || 'real'
+      questionSource: source || 'real',
+      questionType: question.type || '',
+      currentStep: 'reading'
     });
+    Store.setPreferences({ examType: question.exam || '英语一', part: question.part || '大作文' });
+    return session;
   }
 
   function stepIndex(step) { return Math.max(0, STEPS.indexOf(step)); }

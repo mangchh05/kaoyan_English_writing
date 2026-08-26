@@ -29,7 +29,9 @@
 
 **首页聚焦原则**：首页只回答“我今天应该做什么、我昨天学到哪里、我最近有没有进步”。内容由今日任务、上次训练、今日在线时长、连续学习天数、本周作文数量、最近得分变化和学习热力图组成；首页只保留一个主行动按钮，其余入口降为次要行为。
 
-**今日训练状态机**：每次从题库点击「开始今日训练」都会生成唯一 `sessionId`，训练严格经过 `reading → planning → writing → correcting → rewriting → completed`。会话字段（考试类型、题目来源/ID、开始时间、当前步骤、提纲、初稿、批改结果、重写内容、完成时间）保存在 `localStorage` 的 `kyeng.trainingSession` 中，刷新浏览器、退出网站或第二天回来都可继续；原有 `kyeng.history` 批改历史不会被覆盖。
+**今日训练状态机**：每次从题库或首页今日推荐点击「开始今日训练」都会生成唯一 `id/sessionId`，训练严格经过 `reading → planning → writing → correcting → rewriting → completed`。会话字段（考试类型、题目来源/ID/题型、开始/更新时间、当前步骤、提纲、初稿、结构化批改结果、初稿/改写得分、重写内容、完成时间）保存在 `localStorage` 的 `kyeng.trainingSession` 中，刷新浏览器、退出网站或第二天回来都可继续；原有 `kyeng.history` 批改历史不会被覆盖。
+
+**V4 Learning Loop（第二阶段）**：TrainingSession 已升级为包含 `id`、`questionType`、`updatedAt`、`scoreBefore`、`scoreAfter` 的标准会话结构；AI 新批改结果同时保存原文和结构化评分对象。学习报告只读取真实结构化评分，首页根据最近弱项和英语一/英语二偏好生成今日推荐；开始训练、提交作文或完成表达复习会自动签到，日期统一按用户本地时区计算。
 
 ## 推荐使用路径
 
@@ -170,7 +172,10 @@ window.APP_DATA_EN1 = [
 ├── js/
 │   ├── app.js                # 路由 + 导航 + SVG 图标 + UI 工具
 │   ├── store.js              # 数据合并 + localStorage 持久化
+│   ├── date-utils.js         # 本地日期工具
 │   ├── training-session.js   # 今日训练六阶段状态机与会话恢复
+│   ├── correction-schema.js  # 结构化 AI 批改结果协议
+│   ├── recommendation.js     # 基于真实弱项的今日题目推荐
 │   ├── charts.js             # SVG 图表 / 图画场景渲染引擎
 │   ├── data-meta.js          # 框架 / 好词好句 / 评分标准 / 高频错误
 │   ├── data-phrases-extra.js # 好词好句扩充素材库

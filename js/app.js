@@ -187,7 +187,7 @@
     window.App.sessionStartedAt = startedAt;
     function liveSeconds() { return Math.max(0, Math.floor((Date.now() - startedAt) / 1000)); }
     window.App.getLiveStudySeconds = liveSeconds;
-    function saveStay() { var seconds = liveSeconds(); if (seconds < 5) return; var p = Store.getProgress(), key = new Date().toISOString().slice(0,10); p.studySeconds = (p.studySeconds || 0) + seconds; p.studyByDate = p.studyByDate || {}; p.studyByDate[key] = (p.studyByDate[key] || 0) + seconds; Store.setProgress(p); startedAt = Date.now(); window.App.sessionStartedAt = startedAt; }
+    function saveStay() { var seconds = liveSeconds(); if (seconds < 5) return; var p = Store.getProgress(), key = DateUtils.localDateKey(); p.studySeconds = (p.studySeconds || 0) + seconds; p.studyByDate = p.studyByDate || {}; p.studyByDate[key] = (p.studyByDate[key] || 0) + seconds; Store.setProgress(p); startedAt = Date.now(); window.App.sessionStartedAt = startedAt; }
     document.addEventListener('visibilitychange', function () { if (document.hidden) saveStay(); else startedAt = Date.now(); });
     window.addEventListener('beforeunload', saveStay);
     if (!location.hash) location.hash = 'home';

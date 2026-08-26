@@ -62,6 +62,13 @@
 
     function questionText(question) { return question && (question.prompt || question.text || '') || ''; }
     function questionTitle(question) { return question && (question.title || question.topic || '今日作文') || '今日作文'; }
+    function feedbackHtml(result) {
+      if (!result) return '';
+      var esc = UI.escapeHtml;
+      var score = result.totalScore == null ? '待确认' : result.totalScore + ' / ' + (result.maxScore || '');
+      var issues = (result.issues || []).slice(0, 3).map(function (issue) { if (typeof issue === 'string') return esc(issue); return esc((issue.original || '') + (issue.suggestion ? ' → ' + issue.suggestion : '') + (issue.explanation ? '（' + issue.explanation + '）' : '')); }).join('<br>');
+      return '<strong>本轮得分：' + esc(score) + '</strong><p>' + esc(result.summary || '批改结果已保存。') + '</p>' + (issues ? '<p><strong>优先修改：</strong><br>' + issues + '</p>' : '');
+    }
     function resumeCorrection() {
       var prefill = TrainingSession.toPrefill(session);
       if (prefill) sessionStorage.setItem('kyeng.prefillTopic', JSON.stringify(prefill));
@@ -134,13 +141,15 @@
         action.appendChild(el('button', { class: 'btn btn-primary', onclick: resumeCorrection }, '继续 AI 批改'));
       } else if (session.currentStep === 'rewriting') {
         action.appendChild(el('h3', { text: '根据反馈完成二次重写' }));
-        if (session.correctionResult) action.appendChild(el('div', { class: 'md training-feedback', html: UI.renderMarkdown(session.correctionResult) }));
+        if (session.correctionResult) action.appendChild(el('div', { class: 'md training-feedback', html: feedbackHtml(session.correctionResult) }));
         var rewrite = el('textarea', { class: 'textarea', id: 'training-rewrite', placeholder: '根据批改建议，重新写一遍你的作文…', value: session.rewrite || '', style: 'min-height:260px;margin-top:14px;' });
         action.appendChild(rewrite);
         rewrite.addEventListener('input', function () { TrainingSession.update({ rewrite: rewrite.value }); });
         action.appendChild(el('button', { class: 'btn btn-primary mt', onclick: function () {
           if (!rewrite.value.trim()) { UI.toast('请先完成二次重写'); return; }
           TrainingSession.transition('completed', { rewrite: rewrite.value.trim() });
+          var activity = Store.recordLearningActivity('complete_training');
+          if (activity.checkedIn) UI.toast('Day ' + activity.day + ' ✓ 训练完成，今天的学习已记录。');
           session = TrainingSession.getCurrent(); renderState();
         } }, '提交重写，完成训练'));
       } else {

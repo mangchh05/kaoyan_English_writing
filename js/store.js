@@ -13,7 +13,8 @@
     settings: NS + 'settings',
     progress: NS + 'progress',
     history: NS + 'history',
-    trainingSession: NS + 'trainingSession'
+    trainingSession: NS + 'trainingSession',
+    preferences: NS + 'preferences'
   };
 
   function safeParse(str, fallback) {
@@ -162,6 +163,34 @@
   }
   function clearHistory() { save(KEYS.history, []); }
 
+  /* ---------- 本地日期与自动签到 ---------- */
+  function localDay(date) { return window.DateUtils ? window.DateUtils.localDateKey(date) : new Date(date || new Date()).toLocaleDateString('en-CA'); }
+  function recordLearningActivity(activity) {
+    var p = getProgress();
+    var today = localDay();
+    p.checkins = p.checkins || {};
+    var checkedIn = !p.checkins[today];
+    if (checkedIn) p.checkins[today] = true;
+    var count = 0, cursor = new Date();
+    while (p.checkins[localDay(cursor)]) { count++; cursor.setDate(cursor.getDate() - 1); }
+    p.streak = p.streak || {};
+    p.streak.current = count;
+    p.streak.lastDate = today;
+    p.streak.lastActivity = activity || 'study';
+    p.streak.total = Object.keys(p.checkins).filter(function (key) { return !!p.checkins[key]; }).length;
+    setProgress(p);
+    return { checkedIn: checkedIn, day: count, date: today, activity: activity || 'study' };
+  }
+
+  /* ---------- 用户训练偏好 ---------- */
+  function getPreferences() { return load(KEYS.preferences, { examType: '英语一', part: '大作文' }); }
+  function setPreferences(prefs) {
+    var current = getPreferences();
+    Object.keys(prefs || {}).forEach(function (key) { current[key] = prefs[key]; });
+    save(KEYS.preferences, current);
+    return current;
+  }
+
   /* ---------- 今日训练会话 ---------- */
   function getTrainingSession() { return load(KEYS.trainingSession, null); }
   function setTrainingSession(session) { save(KEYS.trainingSession, session); return session; }
@@ -201,6 +230,9 @@
     addHistory: addHistory,
     deleteHistory: deleteHistory,
     clearHistory: clearHistory,
+    recordLearningActivity: recordLearningActivity,
+    getPreferences: getPreferences,
+    setPreferences: setPreferences,
     getTrainingSession: getTrainingSession,
     setTrainingSession: setTrainingSession,
     clearTrainingSession: clearTrainingSession,

@@ -63,6 +63,7 @@
       if (idx >= 0) { p.memorized.splice(idx, 1); toast('已取消打卡'); }
       else { p.memorized.push(curEssay.id); toast('打卡成功！已记录'); }
       Store.setProgress(p);
+      if (idx < 0) { var activity = Store.recordLearningActivity('review_expression'); if (activity.checkedIn) toast('Day ' + activity.day + ' ✓ 今天也完成了一次学习。'); }
       updateCheckin();
     }
     function updateCheckin() {

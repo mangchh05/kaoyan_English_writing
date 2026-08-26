@@ -149,24 +149,6 @@
   }
   App.pages.simulations = renderSimulationPage;
 
-  function showDailyCheckin() {
-    if (window.__dailyCheckinShown) return;
-    window.__dailyCheckinShown = true;
-    var p = Store.getProgress(), today = new Date().toISOString().slice(0, 10);
-    var quotes = ['Small steps every day lead to big changes.', 'Your future self will thank you for studying today.', 'Consistency is the quiet engine of achievement.', 'Every sentence you write brings you closer to your goal.'];
-    var done = p.checkins && p.checkins[today];
-    var modalBody = el('div', { class: 'checkin-modal' });
-    modalBody.appendChild(el('div', { class: 'checkin-orbit', text: '✦' }));
-    modalBody.appendChild(el('div', { class: 'eyebrow', text: 'DAILY CHECK-IN' }));
-    modalBody.appendChild(el('h2', { text: done ? '今天也在路上' : '准备好开始今天的训练了吗？' }));
-    modalBody.appendChild(el('p', { class: 'quote', text: quotes[new Date().getDate() % quotes.length] }));
-    modalBody.appendChild(el('button', { class: 'btn btn-outline', onclick: function () {
-      var pp = Store.getProgress(); pp.checkins = pp.checkins || {}; pp.streak = pp.streak || {};
-      if (!pp.checkins[today]) { pp.checkins[today] = true; pp.streak.current = (pp.streak.current || 0) + 1; Store.setProgress(pp); }
-      modal.close(); var success = UI.openModal(el('div', { class: 'checkin-modal checkin-success' }, [el('div', { class: 'checkin-orbit', text: '✓' }), el('h2', { text: '签到成功' }), el('p', { text: '这是你连续学习的第 ' + (pp.streak.current || 1) + ' 天' }), el('p', { class: 'quote', text: quotes[(new Date().getDate() + 1) % quotes.length] }), el('button', { class: 'btn btn-outline', onclick: function () { success.close(); } }, '开始学习')]));
-    } }, done ? '继续学习' : '完成今日签到'));
-    var modal = UI.openModal(modalBody);
-  }
   function fallbackCopy(text) {
     var ta = document.createElement('textarea');
     ta.value = text; document.body.appendChild(ta); ta.select();
@@ -179,7 +161,7 @@
     var prog = Store.getProgress();
     var minutes = prog.studyMinutes || {}, byDate = prog.studyByDate || {};
     Object.keys(byDate).forEach(function (k) { minutes[k] = (minutes[k] || 0) + Math.floor(byDate[k] / 60); });
-    function dateKey(d) { return d.toISOString().slice(0, 10); }
+    function dateKey(d) { return DateUtils.localDateKey(d); }
     var history = Store.getHistory();
     var activeSession = TrainingSession.getCurrent();
     var canResume = activeSession && activeSession.currentStep !== 'completed';
@@ -188,8 +170,9 @@
     var todayKey = dateKey(now);
     var todayMinutes = minutes[todayKey] || 0;
     var last = history[0] || null;
-    var lastScore = scoreFrom(last);
-    var previousScore = scoreFrom(history[1]);
+    var scoredHistory = history.filter(function (record) { return scoreFrom(record) != null; });
+    var lastScore = scoreFrom(scoredHistory[0]);
+    var previousScore = scoreFrom(scoredHistory[1]);
     var weekStart = new Date(now);
     weekStart.setHours(0, 0, 0, 0);
     weekStart.setDate(weekStart.getDate() - 6);
@@ -200,14 +183,8 @@
     var streak = prog.streak && prog.streak.current ? prog.streak.current : 0;
 
     function scoreFrom(record) {
-      if (!record || !record.result) return null;
-      var text = String(record.result);
-      var patterns = [/总分[^0-9]{0,20}(\d+(?:\.\d+)?)/i, /得分[^0-9]{0,20}(\d+(?:\.\d+)?)/i, /score[^0-9]{0,20}(\d+(?:\.\d+)?)/i, /评分[^0-9]{0,20}(\d+(?:\.\d+)?)/i];
-      for (var i = 0; i < patterns.length; i++) {
-        var match = text.match(patterns[i]);
-        if (match) return Number(match[1]);
-      }
-      return null;
+      var result = record && record.structuredResult;
+      return result && typeof result.totalScore === 'number' ? result.totalScore : null;
     }
 
     function scoreLabel(value) { return value == null ? '—' : String(value) + ' 分'; }
@@ -221,10 +198,32 @@
       el('div', {}, [el('div', { class: 'eyebrow', text: 'TODAY · 写作训练工作台' }), el('h2', { text: '今天，完成一轮真正的训练。' }), el('p', { class: 'muted', text: canResume ? '当前停在「' + stepNames[activeSession.currentStep] + '」，继续当前会话即可。' : (last ? '上一轮训练已完成，今天开始新的训练。' : '先完成一篇作文，系统会从今天开始记录你的写作进步。') })])
     ]));
 
-    root.appendChild(el('div', { class: 'card home-task' }, [
-      el('div', { class: 'home-task-copy' }, [el('div', { class: 'eyebrow', text: 'YOUR NEXT ACTION' }), el('h3', { text: canResume ? '继续当前训练会话' : '开始今天的第一篇作文' }), el('p', { text: canResume ? '上次离开在「' + stepNames[activeSession.currentStep] + '」阶段，所有提纲、草稿和反馈都会保留。' : '去题库选一道真题或固定模拟题，系统会从阅读题目开始记录这次训练。' })]),
-      el('button', { class: 'btn btn-primary', onclick: function () { if (activeSession && activeSession.currentStep === 'completed') Store.clearTrainingSession(); location.hash = 'today'; } }, canResume ? '继续训练' : '开始今日训练')
-    ]));
+    var recommendation = Recommendation.getToday(0), recommendationOffset = 0;
+    var task = el('div', { class: 'card home-task' });
+    var taskCopy = el('div', { class: 'home-task-copy' });
+    var taskActions = el('div', { class: 'home-task-actions' });
+    var taskPrimary = el('button', { class: 'btn btn-primary', onclick: function () {
+      if (canResume) { location.hash = 'today'; return; }
+      Recommendation.start(recommendation); location.hash = 'today';
+    } }, canResume ? '继续训练' : '开始今日训练');
+    var changeTask = el('button', { class: 'btn btn-ghost btn-sm', onclick: function () { recommendation = Recommendation.getToday(++recommendationOffset); renderTask(); } }, '换一道');
+    function renderTask() {
+      taskCopy.innerHTML = '';
+      if (canResume) {
+        taskCopy.appendChild(el('div', { class: 'eyebrow', text: 'YOUR NEXT ACTION' }));
+        taskCopy.appendChild(el('h3', { text: '继续当前训练会话' }));
+        taskCopy.appendChild(el('p', { text: '上次离开在「' + stepNames[activeSession.currentStep] + '」阶段，所有提纲、草稿和反馈都会保留。' }));
+      } else {
+        var q = recommendation.question;
+        taskCopy.appendChild(el('div', { class: 'eyebrow', text: 'TODAY RECOMMENDATION · 今日推荐' }));
+        taskCopy.appendChild(el('h3', { text: q.title || q.topic || '今日作文训练' }));
+        taskCopy.appendChild(el('div', { class: 'home-task-meta' }, [el('span', { class: 'badge', text: q.exam + ' · ' + q.part }), el('span', { class: 'muted', text: '预计 ' + recommendation.estimatedMinutes + ' min' })]));
+        taskCopy.appendChild(el('p', { text: '训练重点：' + recommendation.focus + '。推荐原因：' + recommendation.reason }));
+      }
+    }
+    taskActions.appendChild(taskPrimary);
+    if (!canResume) taskActions.appendChild(changeTask);
+    task.appendChild(taskCopy); task.appendChild(taskActions); renderTask(); root.appendChild(task);
 
     root.appendChild(el('div', { class: 'card home-last' }, [
       el('div', { class: 'flex-between' }, [el('div', {}, [el('div', { class: 'eyebrow', text: 'PREVIOUS SESSION · 上次训练' }), el('h3', { text: last ? (last.topic || '作文练习') : '还没有训练记录' })]), last ? el('span', { class: 'badge gray', text: last.time || '最近一次' }) : null]),
@@ -247,6 +246,6 @@
       el('div', { class: 'heat-legend' }, [el('span', { text: '少' }), [0,1,2,3,4].map(function(n){ return el('i', { class: 'heat-cell l' + n }); }), el('span', { text: '多' })])
     ]);
     root.appendChild(progress);
-    setInterval(refreshLiveMinutes, 1000); refreshLiveMinutes(); setTimeout(showDailyCheckin, 250);
+    setInterval(refreshLiveMinutes, 1000); refreshLiveMinutes();
   };
 })();
