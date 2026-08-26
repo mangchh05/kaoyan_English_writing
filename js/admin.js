@@ -58,38 +58,6 @@
     } }, '保存设置'));
     root.appendChild(setCard);
 
-    /* ================= AI 绘图设置（图画题配图） ================= */
-    var IMG_PROVIDERS = window.AI_IMAGE_PROVIDERS || [];
-    var s2 = Store.getSettings();
-    var imgCard = el('div', { class: 'card' });
-    imgCard.appendChild(el('div', { class: 'flex-between' },
-      [el('h3', { text: 'AI 绘图设置（图画题配图）' }), el('span', { class: 'badge gray', text: '仅保存在本机浏览器' })]));
-    var imgProvSel = el('select', { class: 'select' }, IMG_PROVIDERS.map(function (p) { return el('option', { value: p.id, text: p.name }); }));
-    imgProvSel.value = s2.imgProvider;
-    var imgKeyInput = el('input', { class: 'input', type: 'password', placeholder: 'sk-…', value: s2.imgKey });
-    var imgBaseInput = el('input', { class: 'input', value: s2.imgBaseUrl });
-    var imgModelInput = el('input', { class: 'input', value: s2.imgModel, list: 'adm-img-model' });
-    var imgModelList = el('datalist', { id: 'adm-img-model' });
-    function fillImgModels() {
-      var p = IMG_PROVIDERS.filter(function (x) { return x.id === imgProvSel.value; })[0] || IMG_PROVIDERS[0] || { models: [] };
-      imgModelList.innerHTML = '';
-      (p.models || []).forEach(function (m) { imgModelList.appendChild(el('option', { value: m })); });
-    }
-    fillImgModels();
-    imgProvSel.addEventListener('change', function () {
-      var p = IMG_PROVIDERS.filter(function (x) { return x.id === imgProvSel.value; })[0];
-      if (p) { imgBaseInput.value = p.baseUrl; if (p.models.length) imgModelInput.value = p.models[0]; }
-      fillImgModels();
-    });
-    imgCard.appendChild(el('div', { class: 'form-row' }, [field('绘图服务商', imgProvSel), field('API Key', imgKeyInput), field('模型', imgModelInput), imgModelList]));
-    imgCard.appendChild(el('div', { class: 'form-row' }, [field('Base URL', imgBaseInput)]));
-    imgCard.appendChild(el('div', { class: 'hint', text: '图画作文的配图将调用此处的文生图接口生成（OpenAI 兼容 images/generations）。推荐 SiliconFlow 硅基流动（浏览器直连稳定，FLUX.1-schnell 速度快）。生成结果缓存在本机，可随时重新生成；如需永久保存请右键图片另存到 images/ 目录后引用。' }));
-    imgCard.appendChild(el('button', { class: 'btn btn-primary btn-sm mt', onclick: function () {
-      Store.setSettings({ imgProvider: imgProvSel.value, imgBaseUrl: imgBaseInput.value.trim(), imgModel: imgModelInput.value.trim(), imgKey: imgKeyInput.value.trim() });
-      toast('AI 绘图设置已保存');
-    } }, '保存设置'));
-    root.appendChild(imgCard);
-
     /* ================= 真题/范文 ================= */
     var essayCard = el('div', { class: 'card' });
     essayCard.appendChild(el('div', { class: 'flex-between' },

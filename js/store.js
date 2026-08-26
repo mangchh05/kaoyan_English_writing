@@ -141,7 +141,7 @@
 
   /* ---------- 学习进度 ---------- */
   function getProgress() {
-    return load(KEYS.progress, { memorized: [], favorites: [], streak: {}, checkins: {} });
+    return load(KEYS.progress, { memorized: [], favorites: [], streak: {}, checkins: {}, studySeconds: 0 });
   }
   function setProgress(p) { save(KEYS.progress, p); }
 

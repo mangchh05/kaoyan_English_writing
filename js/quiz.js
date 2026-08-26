@@ -129,6 +129,36 @@
       navigator.clipboard.writeText(text).then(function () { toast('已复制'); }, function () { fallbackCopy(text); });
     } else fallbackCopy(text);
   }
+
+  function renderSimulationPage(root) {
+    var quizCard = el('div', { class: 'card simulation-studio' });
+    quizCard.appendChild(el('div', { class: 'eyebrow', text: 'PRACTICE DECK · 固定资料题库' }));
+    quizCard.appendChild(el('h2', { text: '模拟出题' }));
+    quizCard.appendChild(el('p', { class: 'muted', text: '从本地导入的 30 篇资料模拟题中训练，题目与配图固定可复习。' }));
+    var resultBox = el('div', { id: 'quiz-result' });
+    quizCard.appendChild(el('div', { class: 'filterbar' }, [el('select', { class: 'select', id: 'quiz-type', style: 'max-width:220px;' }, ['全部模拟题', '英语一大作文', '英语一小作文', '英语二大作文', '英语二小作文'].map(function (t) { return el('option', { value: t === '全部模拟题' ? '' : t, text: t }); })), el('button', { class: 'btn btn-primary', onclick: function () { renderQuizResult(resultBox, genQuiz(document.getElementById('quiz-type').value)); } }, '抽取一题'), el('button', { class: 'btn btn-outline', onclick: function () { var q = genRealQuestion(); renderQuizResult(resultBox, q); } }, '抽一道真题')]));
+    quizCard.appendChild(resultBox); root.appendChild(quizCard); renderQuizResult(resultBox, genQuiz(''));
+  }
+  App.pages.simulations = renderSimulationPage;
+
+  function showDailyCheckin() {
+    if (window.__dailyCheckinShown) return;
+    window.__dailyCheckinShown = true;
+    var p = Store.getProgress(), today = new Date().toISOString().slice(0, 10);
+    var quotes = ['Small steps every day lead to big changes.', 'Your future self will thank you for studying today.', 'Consistency is the quiet engine of achievement.', 'Every sentence you write brings you closer to your goal.'];
+    var done = p.checkins && p.checkins[today];
+    var modalBody = el('div', { class: 'checkin-modal' });
+    modalBody.appendChild(el('div', { class: 'checkin-orbit', text: '✦' }));
+    modalBody.appendChild(el('div', { class: 'eyebrow', text: 'DAILY CHECK-IN' }));
+    modalBody.appendChild(el('h2', { text: done ? '今天也在路上' : '准备好开始今天的训练了吗？' }));
+    modalBody.appendChild(el('p', { class: 'quote', text: quotes[new Date().getDate() % quotes.length] }));
+    modalBody.appendChild(el('button', { class: 'btn btn-primary', onclick: function () {
+      var pp = Store.getProgress(); pp.checkins = pp.checkins || {}; pp.streak = pp.streak || {};
+      if (!pp.checkins[today]) { pp.checkins[today] = true; pp.streak.current = (pp.streak.current || 0) + 1; Store.setProgress(pp); }
+      modal.close(); var success = UI.openModal(el('div', { class: 'checkin-modal checkin-success' }, [el('div', { class: 'checkin-orbit', text: '✓' }), el('h2', { text: '签到成功' }), el('p', { text: '这是你连续学习的第 ' + (pp.streak.current || 1) + ' 天' }), el('p', { class: 'quote', text: quotes[(new Date().getDate() + 1) % quotes.length] }), el('button', { class: 'btn btn-primary', onclick: function () { success.close(); } }, '开始学习')]));
+    } }, done ? '继续学习' : '完成今日签到'));
+    var modal = UI.openModal(modalBody);
+  }
   function fallbackCopy(text) {
     var ta = document.createElement('textarea');
     ta.value = text; document.body.appendChild(ta); ta.select();
@@ -140,7 +170,8 @@
   App.pages.home = function (root) {
     var essays = Store.getEssays();
     var prog = Store.getProgress();
-    var minutes = prog.studyMinutes || {};
+    var minutes = prog.studyMinutes || {}, byDate = prog.studyByDate || {};
+    Object.keys(byDate).forEach(function (k) { minutes[k] = (minutes[k] || 0) + Math.floor(byDate[k] / 60); });
     function dateKey(d) { return d.toISOString().slice(0, 10); }
     function recordStudy() { var p = Store.getProgress(); p.studyMinutes = p.studyMinutes || {}; var k = dateKey(new Date()); p.studyMinutes[k] = (p.studyMinutes[k] || 0) + 30; Store.setProgress(p); toast('已记录今天 30 分钟学习'); location.hash = 'home'; }
     var today = minutes[dateKey(new Date())] || 0;
@@ -151,7 +182,7 @@
       (function () { var grid = el('div', { class: 'heatmap' }); var end = new Date(); for (var i = 83; i >= 0; i--) { var d = new Date(end); d.setDate(end.getDate() - i); var v = minutes[dateKey(d)] || 0; var level = v >= 120 ? 4 : v >= 60 ? 3 : v >= 30 ? 2 : v > 0 ? 1 : 0; grid.appendChild(el('span', { class: 'heat-cell l' + level, title: dateKey(d) + ' · ' + v + ' 分钟' })); } return grid; })(),
       el('div', { class: 'heat-legend' }, [el('span', { text: '少' }), [0,1,2,3,4].map(function(n){ return el('i', { class: 'heat-cell l' + n }); }), el('span', { text: '多' })])
     ]);
-    root.appendChild(heat);
+    root.appendChild(heat); setTimeout(showDailyCheckin, 250);
 
     root.appendChild(el('div', { class: 'hero' },
       [el('h2', { text: '考研英语写作 · 一站式训练平台' }),
@@ -171,7 +202,7 @@
       });
     root.appendChild(stats);
 
-    // 模拟出题
+    /* 模拟出题已移动到左侧导航的独立模块 */
     var quizCard = el('div', { class: 'card' });
     quizCard.appendChild(el('h3', { text: '模拟出题' }));
     var bar = el('div', { class: 'filterbar' },
@@ -182,13 +213,14 @@
     quizCard.appendChild(bar);
     var resultBox = el('div', { id: 'quiz-result' });
     quizCard.appendChild(resultBox);
-    root.appendChild(quizCard);
+    /* 不在主页渲染模拟题卡片 */
 
     // 快速入口
     var quick = el('div', { class: 'card' });
     quick.appendChild(el('h3', { text: '快速开始' }));
     quick.appendChild(el('div', { class: 'grid grid-3' },
       [
+        [['模拟出题', '固定资料题库与配图，按考试类型训练'], 'simulations'],
         [['真题库', '查看历年真题题目、范文与要点'], 'library'],
         [['AI 批改', '上传 Word 或粘贴作文，获取专业批改'], 'correct'],
         [['范文背诵', '渐进式背诵范文与好词好句'], 'memorize'],
@@ -203,6 +235,6 @@
     root.appendChild(quick);
 
     // 自动渲染一题
-    renderQuizResult(resultBox, genQuiz(''));
+    /* 模拟题入口位于“快速开始” */
   };
 })();
