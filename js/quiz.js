@@ -28,10 +28,11 @@
 
   function genPicturePrompt(theme) {
     theme = theme || pick(PICTURE_THEMES);
+    var mockFiles = { '环境保护': 'assets/mock-环境保护.png', '坚持不懈': 'assets/mock-坚持不懈.png', '多读书·读好书': 'assets/mock-多读书·读好书.png', '言传身教·榜样': 'assets/mock-言传身教·榜样.png' };
     return {
       type: '图画作文',
       topic: theme,
-      scene: { caption: theme },
+      scene: { caption: theme, file: mockFiles[theme] || 'assets/mock-环境保护.png' },
       picId: 'mock:' + theme,
       text: '请根据下面这幅图画写一篇英语短文（约 160–200 词）：\n\n图画围绕主题「' + theme + '」展开。\n\n写作要求：\n1) describe the picture（描述图画）\n2) interpret its meaning（阐释寓意）\n3) give your comments（发表评论）'
     };
@@ -144,6 +145,18 @@
   App.pages.home = function (root) {
     var essays = Store.getEssays();
     var prog = Store.getProgress();
+    var minutes = prog.studyMinutes || {};
+    function dateKey(d) { return d.toISOString().slice(0, 10); }
+    function recordStudy() { var p = Store.getProgress(); p.studyMinutes = p.studyMinutes || {}; var k = dateKey(new Date()); p.studyMinutes[k] = (p.studyMinutes[k] || 0) + 30; Store.setProgress(p); toast('已记录今天 30 分钟学习'); location.hash = 'home'; }
+    var today = minutes[dateKey(new Date())] || 0;
+    var heat = el('div', { class: 'card study-dashboard' }, [
+      el('div', { class: 'flex-between' }, [el('div', {}, [el('div', { class: 'eyebrow', text: '学习驾驶舱 · STUDY PULSE' }), el('h3', { text: '把今天的努力，变成看得见的进步' })]), el('button', { class: 'btn btn-primary btn-sm', onclick: recordStudy }, '记录今天 +30 分钟')]),
+      el('div', { class: 'study-metrics' }, [el('div', {}, [el('strong', { text: String(today) }), el('span', { text: '今日分钟' })]), el('div', {}, [el('strong', { text: String((prog.memorized || []).length) }), el('span', { text: '已背范文' })]), el('div', {}, [el('strong', { text: String(Object.keys(minutes).filter(function(k){ return minutes[k] > 0; }).length) }), el('span', { text: '学习日' })])]),
+      el('div', { class: 'heatmap-title' }, [el('span', { text: '近 12 周学习热力' }), el('span', { class: 'muted small', text: '颜色越深，学习越久' })]),
+      (function () { var grid = el('div', { class: 'heatmap' }); var end = new Date(); for (var i = 83; i >= 0; i--) { var d = new Date(end); d.setDate(end.getDate() - i); var v = minutes[dateKey(d)] || 0; var level = v >= 120 ? 4 : v >= 60 ? 3 : v >= 30 ? 2 : v > 0 ? 1 : 0; grid.appendChild(el('span', { class: 'heat-cell l' + level, title: dateKey(d) + ' · ' + v + ' 分钟' })); } return grid; })(),
+      el('div', { class: 'heat-legend' }, [el('span', { text: '少' }), [0,1,2,3,4].map(function(n){ return el('i', { class: 'heat-cell l' + n }); }), el('span', { text: '多' })])
+    ]);
+    root.appendChild(heat);
 
     root.appendChild(el('div', { class: 'hero' },
       [el('h2', { text: '考研英语写作 · 一站式训练平台' }),

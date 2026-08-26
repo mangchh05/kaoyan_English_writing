@@ -15,3 +15,11 @@ window.APP_DATA_IMAGES_SCENES = {
 "en1-2023": { "scene": { "prompt": "A dragon boat race on a river, several paddlers rowing in unison with a carved dragon head at the front of the boat and splashing water, traditional Chinese culture and teamwork theme, in the style of a simple line-drawing cartoon for a Chinese postgraduate entrance exam writing section, flat minimal illustration, thin ink outlines, muted colors, clean white background, no text", "caption": "众人齐心协力划龙舟（传统文化传承）" } },
 "en1-2024": { "scene": { "prompt": "People jogging and doing morning exercises in a park with trees, a pond and a rising sun in the background, national fitness and healthy lifestyle theme, in the style of a simple line-drawing cartoon for a Chinese postgraduate entrance exam writing section, flat minimal illustration, thin ink outlines, muted colors, clean white background, no text", "caption": "人们在公园跑步健身（全民健身）" } }
 };
+
+(function () {
+  var root = 'kaoyan_english_cartoon/';
+  var files = {
+    2010:'2010_文化火锅_文化融合.jpg',2011:'2011_旅程之余_旅游污染.jpg',2012:'2012_乐观与悲观.jpg',2013:'2013_毕业生的选择.jpg',2014:'2014_相携_孝道.jpg',2015:'2015_手机时代的聚会.jpg',2016:'2016_与其只提要求不如做个榜样_家庭教育.jpg',2017:'2017_有书与读书.jpg',2018:'2018_选课进行时.jpg',2019:'2019_途中_坚持.jpg',2020:'2020_榜样的力量_家庭教育.jpg',2021:'2021_传统文化_唱戏.jpg',2022:'2022_校园讲座_拓宽视野.jpg',2023:'2023_龙舟赛_传统文化.jpg',2024:'2024_城市公园建设_图画加图表.jpg'
+  };
+  Object.keys(files).forEach(function (year) { var id = 'en1-' + year; if (window.APP_DATA_IMAGES_SCENES[id]) window.APP_DATA_IMAGES_SCENES[id].file = root + files[year]; });
+})();

@@ -232,7 +232,7 @@
   function renderFor(id, imageObj) {
     if (!imageObj) return '';
     if (imageObj.chart) return renderChart(imageObj.chart);
-    if (imageObj.file) return '<img src="' + esc(imageObj.file) + '" alt="题目配图" style="width:100%;height:auto;border-radius:8px;display:block;background:#fdfbf4;"/>';
+    if (imageObj.file) return '<div class="essay-image-wrap"><img src="' + esc(imageObj.file) + '" alt="题目配图" /></div>';
     return picturePanel(id, (imageObj.scene && imageObj.scene.caption) || '');
   }
 
