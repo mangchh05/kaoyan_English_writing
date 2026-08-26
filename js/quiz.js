@@ -174,6 +174,12 @@
     Object.keys(byDate).forEach(function (k) { minutes[k] = (minutes[k] || 0) + Math.floor(byDate[k] / 60); });
     function dateKey(d) { return d.toISOString().slice(0, 10); }
     var today = minutes[dateKey(new Date())] || 0;
+    var history = Store.getHistory();
+    var coach = el('div', { class: 'coach-card card' }, [
+      el('div', { class: 'coach-copy' }, [el('div', { class: 'eyebrow', text: 'GOOD MORNING · 写作教练' }), el('h2', { text: '今天，也为上岸积累一点点。' }), el('p', { text: history.length ? '上次训练：' + (history[0].topic || '作文练习') + '。继续把反馈变成分数。' : '先完成一次训练，系统会开始建立你的写作能力画像。' })]),
+      el('div', { class: 'coach-actions' }, [el('button', { class: 'btn btn-primary', onclick: function () { location.hash = history.length ? 'correct' : 'simulations'; } }, history.length ? '继续上次训练' : '开始第一次训练'), el('button', { class: 'btn btn-outline', onclick: function () { location.hash = 'insights'; } }, '查看我的弱项')])
+    ]);
+    root.appendChild(coach);
     var todayNum = el('strong', { text: String(today) });
     function refreshLiveMinutes() { var live = window.App.getLiveStudySeconds ? Math.floor(window.App.getLiveStudySeconds() / 60) : 0; todayNum.textContent = String(today + live); }
     var heat = el('div', { class: 'card study-dashboard' }, [
@@ -202,19 +208,6 @@
           [el('div', { class: 'num', text: String(s[1]) }), el('div', { class: 'lbl', text: s[0] + ' · ' + s[2] })]));
       });
     root.appendChild(stats);
-
-    /* 模拟出题已移动到左侧导航的独立模块 */
-    var quizCard = el('div', { class: 'card' });
-    quizCard.appendChild(el('h3', { text: '模拟出题' }));
-    var bar = el('div', { class: 'filterbar' },
-      [el('select', { class: 'select', id: 'quiz-type', style: 'max-width:200px;' },
-          ['全部模拟题', '英语一大作文', '英语一小作文', '英语二大作文', '英语二小作文'].map(function (t) { return el('option', { value: t === '全部模拟题' ? '' : t, text: t }); })),
-        el('button', { class: 'btn btn-primary', onclick: function () { renderQuizResult(resultBox, genQuiz(document.getElementById('quiz-type').value)); } }, '生成模拟题'),
-        el('button', { class: 'btn btn-outline', onclick: function () { var q = genRealQuestion(); renderQuizResult(resultBox, q); } }, '抽一道真题')]);
-    quizCard.appendChild(bar);
-    var resultBox = el('div', { id: 'quiz-result' });
-    quizCard.appendChild(resultBox);
-    /* 不在主页渲染模拟题卡片 */
 
     // 快速入口
     var quick = el('div', { class: 'card' });

@@ -516,6 +516,13 @@ h1,h2,h3,h4,.brand h1 { font-family:var(--font); }
 .checkin-success .checkin-orbit { border-color:#34D399; color:#059669; box-shadow:0 0 0 5px #DDF8ED,4px 5px 0 rgba(5,150,105,.18); }
 .skip-link { position:fixed; left:16px; top:-60px; z-index:1000; padding:10px 14px; border-radius:10px; background:#0F172A; color:#fff; }
 .skip-link:focus { top:16px; }
+.coach-card { display:flex; justify-content:space-between; align-items:center; gap:24px; padding:28px 30px; background:linear-gradient(110deg,#fff,#F7F3FD); }
+.coach-copy { max-width:650px; }.coach-copy h2 { margin:5px 0 8px; font-size:26px; }.coach-copy p { color:var(--ink-2); }
+.coach-actions { display:flex; flex-direction:column; gap:10px; min-width:150px; }
+.insight-summary { display:flex; align-items:center; gap:28px; padding:28px; background:linear-gradient(110deg,#fff,#F7F3FD); }
+.insight-score { min-width:150px; text-align:center; }.insight-score span,.insight-score small { display:block; color:var(--ink-2); }.insight-score strong { font-size:56px; line-height:1.1; color:var(--red); }
+.insight-copy { flex:1; }.insight-copy h3 { margin-bottom:6px; }.insight-copy p { color:var(--ink-2); margin-bottom:15px; }.insight-bar strong { font-size:15px; }.insight-bar > div:first-child span { color:var(--red); font-weight:700; }.progress-track { height:10px; background:#EEEAF8; border-radius:99px; overflow:hidden; margin:12px 0 8px; }.progress-track i { display:block; height:100%; background:linear-gradient(90deg,#A78BFA,#7C3AED); border-radius:inherit; }.insight-bar small { color:var(--ink-3); }.focus-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }.focus-step { display:flex; gap:10px; align-items:center; text-align:left; border:2px solid var(--line); background:#fff; border-radius:12px; padding:14px; cursor:pointer; color:var(--ink); }.focus-step:hover { border-color:#C7B2ED; }.focus-step b { color:var(--red); font-size:18px; }.focus-step span { font-size:13px; }
+@media (max-width:640px) { .coach-card,.insight-summary { flex-direction:column; align-items:stretch; }.coach-actions { flex-direction:row; }.coach-actions .btn { flex:1; }.focus-steps { grid-template-columns:1fr; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important; transition-duration:.01ms!important; } }
 @media (max-width:820px) { #content { padding:20px 16px; } .hero { padding:32px 24px; } .card { border-width:2px; } }
 
