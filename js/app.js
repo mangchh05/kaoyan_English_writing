@@ -5,15 +5,15 @@
   'use strict';
 
   var ROUTES = [
-    { hash: 'home', title: '主页', svg: 'M3 10.5 12 3l9 7.5V21h-5v-6h-8v6H3z' },
-    { hash: 'library', title: '真题库', svg: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5' },
-    { hash: 'simulations', title: '模拟出题', svg: 'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5' },
-    { hash: 'insights', title: '我的弱项', svg: 'M4 19V5M4 19h16M8 16v-4M12 16V8M16 16V5' },
-    { hash: 'correct', title: 'AI 批改', svg: 'M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z' },
-    { hash: 'memorize', title: '范文背诵', svg: 'M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10zM12 18a6 6 0 1 0-6-6 6 6 0 0 0 6 6zM12 14a2 2 0 1 0-2-2 2 2 0 0 0 2 2z' },
-    { hash: 'framework', title: '作文框架', svg: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z' },
-    { hash: 'guide', title: '写作指南', svg: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' },
-    { hash: 'admin', title: '数据管理', svg: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6' }
+    { hash: 'home', title: '主页', group: '开始', svg: 'M3 10.5 12 3l9 7.5V21h-5v-6h-8v6H3z' },
+    { hash: 'library', title: '真题训练', group: '训练', svg: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5' },
+    { hash: 'simulations', title: '模拟训练', group: '训练', svg: 'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5' },
+    { hash: 'correct', title: 'AI 批改', group: '训练', svg: 'M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z' },
+    { hash: 'memorize', title: '范文背诵', group: '复习', svg: 'M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10zM12 18a6 6 0 1 0-6-6 6 6 0 0 0 6 6zM12 14a2 2 0 1 0-2-2 2 2 0 0 0 2 0z' },
+    { hash: 'framework', title: '作文框架', group: '复习', svg: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z' },
+    { hash: 'guide', title: '写作指南', group: '复习', svg: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' },
+    { hash: 'insights', title: '我的弱项', group: '我的进步', svg: 'M4 19V5M4 19h16M8 16v-4M12 16V8M16 16V5' },
+    { hash: 'admin', title: '数据管理', group: '我的进步', svg: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6' }
   ];
 
   /* ---------- SVG 线性图标 ---------- */
@@ -134,8 +134,10 @@
     var nav = document.getElementById('nav');
     var cur = currentRoute();
     nav.innerHTML = '';
+    var lastGroup = '';
     ROUTES.forEach(function (r) {
-      var item = el('div', { class: 'nav-item' + (cur === r.hash ? ' active' : ''), onclick: function () { location.hash = r.hash; } },
+      if (r.group !== lastGroup) { nav.appendChild(el('div', { class: 'nav-section-title', text: r.group })); lastGroup = r.group; }
+      var item = el('div', { class: 'nav-item' + (cur === r.hash ? ' active' : ''), role: 'button', tabindex: '0', 'aria-current': cur === r.hash ? 'page' : 'false', onclick: function () { location.hash = r.hash; }, onkeydown: function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); location.hash = r.hash; } } },
         [el('span', { class: 'ico' }, iconSvg(r.svg)), el('span', { text: r.title })]);
       nav.appendChild(item);
     });
