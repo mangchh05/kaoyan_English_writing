@@ -13,6 +13,7 @@
     { hash: 'materials', title: '素材库', group: '复习', svg: 'M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6z' },
     { hash: 'reports', title: '学习报告', group: '我的进步', svg: 'M4 19V5M4 19h16M8 16v-4M12 16V8M16 16V5' }
   ];
+  var ADVANCED_ROUTE = { hash: 'admin', title: '设置 / 高级设置', svg: 'M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.7 1.7-.1-.1a1.7 1.7 0 0 0-1.9-.3l-.5.2a1.7 1.7 0 0 0-1 1.5v.2h-2.4V20a1.7 1.7 0 0 0-1-1.5l-.5-.2a1.7 1.7 0 0 0-1.9.3l-.1.1-1.7-1.7.1-.1a1.7 1.7 0 0 0 .3-1.9l-.2-.5a1.7 1.7 0 0 0-1.5-1H7v-2.4h.2a1.7 1.7 0 0 0 1.5-1l.2-.5a1.7 1.7 0 0 0-.3-1.9l-.1-.1 1.7-1.7.1.1a1.7 1.7 0 0 0 1.9.3l.5-.2a1.7 1.7 0 0 0 1-1.5V4h2.4v.2a1.7 1.7 0 0 0 1 1.5l.5.2a1.7 1.7 0 0 0 1.9-.3l.1-.1 1.7 1.7-.1.1a1.7 1.7 0 0 0-.3 1.9l.2.5a1.7 1.7 0 0 0 1.5 1h.2v2.4H21a1.7 1.7 0 0 0-1.5 1l-.1.4z' };
 
   /* ---------- SVG 线性图标 ---------- */
   function iconSvg(d) {
@@ -135,10 +136,14 @@
     var lastGroup = '';
     ROUTES.forEach(function (r) {
       if (r.group !== lastGroup) { nav.appendChild(el('div', { class: 'nav-section-title', text: r.group })); lastGroup = r.group; }
-      var item = el('div', { class: 'nav-item' + (cur === r.hash ? ' active' : ''), role: 'button', tabindex: '0', 'aria-current': cur === r.hash ? 'page' : 'false', onclick: function () { location.hash = r.hash; }, onkeydown: function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); location.hash = r.hash; } } },
+      var item = el('button', { class: 'nav-item' + (cur === r.hash ? ' active' : ''), type: 'button', 'aria-current': cur === r.hash ? 'page' : 'false', onclick: function () { location.hash = r.hash; } },
         [el('span', { class: 'ico' }, iconSvg(r.svg)), el('span', { text: r.title })]);
       nav.appendChild(item);
     });
+
+    nav.appendChild(el('div', { class: 'nav-advanced-divider', 'aria-hidden': 'true' }));
+    nav.appendChild(el('button', { class: 'nav-item nav-item-advanced' + (cur === ADVANCED_ROUTE.hash ? ' active' : ''), type: 'button', 'aria-current': cur === ADVANCED_ROUTE.hash ? 'page' : 'false', onclick: function () { location.hash = ADVANCED_ROUTE.hash; } },
+      [el('span', { class: 'ico' }, iconSvg(ADVANCED_ROUTE.svg)), el('span', { text: ADVANCED_ROUTE.title })]));
 
     // 底部数据统计
     var count = document.getElementById('nav-data-count');
